@@ -163,16 +163,16 @@ ci.95 <- confint(multi.model)
 
 ```{r echo = FALSE}
 exp.coeffs <- exp(x = coeffs[, 1])
-exp.coeffs
+effects <- abs(1 - exp.coeffs) * 100
 ```
 
 **Introduction.** There are a variety therapuetic treatments that may influence the levels of LDL cholesterol, including the use of statins. Here we investigate the effects of statin use on LDL cholesterol levels, while accounting for age and body mass index.
 
 **Methods.** We used multiple linear regression to simultaneously assess the effects of age, body mass index, and statin use on `r nrow(hers.data)` subjects from the Heart and Estrogen/Progestin Replacement study.
 
-**Results.** 
+**Results.** All tested predictors had a significant effect on LDL cholesterol levels. Increasing age led to a reduction in LDL, with LDL decreasing approximately `r round(effects["age"], 2)`% per year, when body mass index and statin use are held constant. In contrast, body mass index had a negative effect on LDL; one unit increase in body mass index decreased LDL levels by `r round(effects["bmi"], 2)`%, while holding age and statin use constant. Finally, the largest effect was that of of statin use; subjects on statin had LDL levels `r round(effects["statin"], 2)`% lower than those subjects not on statin, while controlling for age and body mass index.
 
-**Conclusion.**
+**Conclusion.** While controlling for age and body mass index, these results demonstrate a significant effect of statin use on lowering LDL cholesterol levels.
 
 
 ### 5. Now suppose interest focuses on whether BMI modifies the association between ln(LDL) and statin use.
