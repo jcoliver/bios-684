@@ -61,15 +61,21 @@ for (predictor in predictors) {
   univar.summary <- summary(univar.model)
   model.stats[predictor, ] <- univar.summary$coefficients[2, c(1, 2, 4)]
 }
+univar.p.values <- model.stats[, 3]
+univar.p.values <- round(univar.p.values, 3)
+univar.p.values[univar.p.values == 0] <- NA
+univar.p.values <- as.character(univar.p.values)
+univar.p.values[is.na(univar.p.values)] <- "< 0.001"
+names(univar.p.values) <- rownames(model.stats)
 ```
 
 Results of univariate linear models, measuring individual associations between ln(LDL) and each response (age, body mass index, and statin use):
 
 |Predictor|Parameter Estimate|Standard Error|P-value|
 |---------|:----------------:|:------------:|:-----:|
-| `r rownames(model.stats)[1]` | `r round(model.stats[1, 1], 3)` | `r round(model.stats[1, 2], 3)` | `r round(model.stats[1, 3], 3)` |
-| `r rownames(model.stats)[2]` | `r round(model.stats[2, 1], 3)` | `r round(model.stats[2, 2], 3)` | `r round(model.stats[2, 3], 3)` |
-| `r rownames(model.stats)[3]` | `r round(model.stats[3, 1], 3)` | `r round(model.stats[3, 2], 3)` | `r round(model.stats[3, 3], 3)` |
+| `r rownames(model.stats)[1]` | `r round(model.stats[1, 1], 3)` | `r round(model.stats[1, 2], 3)` | `r univar.p.values["age"]` |
+| `r rownames(model.stats)[2]` | `r round(model.stats[2, 1], 3)` | `r round(model.stats[2, 2], 3)` | `r univar.p.values["bmi"]` |
+| `r rownames(model.stats)[3]` | `r round(model.stats[3, 1], 3)` | `r round(model.stats[3, 2], 3)` | `r univar.p.values["statin"]` |
 
 The associations between each response variable and cholesterol are significant at the $\alpha = 0.05$ level. Comparing the univariate models, statin use had the largest effect, with statin use reducing ln(LDL) by 0.12 units (I don't know how LDL was measured, so I wasn't sure about units). Body mass index had a positive relationship on ln(LDL), while age had a negative impact on ln(LDL).
 
@@ -135,12 +141,12 @@ This model for the mean assumes:
 multi.model <- lm(ln.LDL ~ age + bmi + statin, data = hers.data)
 multi.summary <- summary(multi.model)
 coeffs <- multi.summary$coefficients
-p.values <- coeffs[, 4]
-p.values <- round(p.values, 3)
-p.values[p.values == 0] <- NA
-p.values <- as.character(p.values)
-p.values[is.na(p.values)] <- "< 0.001"
-names(p.values) <- rownames(coeffs)
+multi.p.values <- coeffs[, 4]
+multi.p.values <- round(multi.p.values, 3)
+multi.p.values[multi.p.values == 0] <- NA
+multi.p.values <- as.character(multi.p.values)
+multi.p.values[is.na(multi.p.values)] <- "< 0.001"
+names(multi.p.values) <- rownames(coeffs)
 ```
 After running multiple linear regression with the `lm` function in R, the model is:  
   
@@ -154,10 +160,10 @@ ci.95 <- confint(multi.model)
 
 |Parameter|Parameter Estimate|Standard Error|Pr($\neq0$)|95% Confidence Interval|
 |---------|:----------------:|:------------:|:---------:|:---------------------:|
-| Intercept | `r round(coeffs["(Intercept)", 1], 3)` | `r round(coeffs["(Intercept)", 2], 3)` | `r p.values["(Intercept)"]` | `r round(ci.95["(Intercept)", 1], 3)` - `r round(ci.95["(Intercept)", 2], 3)`|
-| Age | `r round(coeffs["age", 1], 3)` | `r round(coeffs["age", 2], 3)` | `r p.values["age"]` | `r round(ci.95["age", 1], 3)` - `r round(ci.95["age", 2], 3)`|
-| BMI | `r round(coeffs["bmi", 1], 3)` | `r round(coeffs["bmi", 2], 3)` | `r p.values["bmi"]` | `r round(ci.95["bmi", 1], 3)` - `r round(ci.95["bmi", 2], 3)`|
-| Statin use | `r round(coeffs["statin", 1], 3)` | `r round(coeffs["statin", 2], 3)` | `r p.values["statin"]` | `r round(ci.95["statin", 1], 3)` - `r round(ci.95["statin", 2], 3)`|
+| Intercept | `r round(coeffs["(Intercept)", 1], 3)` | `r round(coeffs["(Intercept)", 2], 3)` | `r multi.p.values["(Intercept)"]` | `r round(ci.95["(Intercept)", 1], 3)` - `r round(ci.95["(Intercept)", 2], 3)`|
+| Age | `r round(coeffs["age", 1], 3)` | `r round(coeffs["age", 2], 3)` | `r multi.p.values["age"]` | `r round(ci.95["age", 1], 3)` - `r round(ci.95["age", 2], 3)`|
+| BMI | `r round(coeffs["bmi", 1], 3)` | `r round(coeffs["bmi", 2], 3)` | `r multi.p.values["bmi"]` | `r round(ci.95["bmi", 1], 3)` - `r round(ci.95["bmi", 2], 3)`|
+| Statin use | `r round(coeffs["statin", 1], 3)` | `r round(coeffs["statin", 2], 3)` | `r multi.p.values["statin"]` | `r round(ci.95["statin", 1], 3)` - `r round(ci.95["statin", 2], 3)`|
 
 ### 4. Based on the results of the analyses conducted in response to questions 1 to 3, summarize the methods, results and interpretation of this study and analysis in a brief structured paragraph in a form that is informative and suitable for an abstract for submission to a conference (which has a 250 word limit). [HINT: It would be good to provide information about the association of LDL with each predictor, not ln(LDL)].
 
@@ -176,7 +182,59 @@ effects <- abs(1 - exp.coeffs) * 100
 
 
 ### 5. Now suppose interest focuses on whether BMI modifies the association between ln(LDL) and statin use.
-#### 1) Extend the model in question 3 to address this question, and report the results. Assess whether the data provide strong evidence that BMI modifies the ln(LDL): statin use association.
-#### 2) Explain why the main effect of statin use does not represent a meaningful effect in this model. 
-#### 3) Construct a new variable (centered bmi) defined as [bmi – mean(bmi)], where this mean is taken over the entire dataset. Re-fit the model in this question replacing bmi with this centered version, and report the results. Explain why the main effect of statin use now represents a meaningful quantity.
+#### 5.1 Extend the model in question 3 to address this question, and report the results. Assess whether the data provide strong evidence that BMI modifies the ln(LDL): statin use association.
 
+Here we extend the multiple linear regression model to include a term modeling the interaction between body mass index and statin use:
+
+The multivariate regression model is: 
+
+$$
+ln(LDL) = \beta_{1}age + \beta_{2}bmi + \beta_{3}statin + \beta_{4}(statin \enspace x \enspace bmi)
+$$
+
+```{r echo = FALSE}
+interact.model <- lm(ln.LDL ~ age + bmi + statin + bmi * statin, data = hers.data)
+interact.summary <- summary(interact.model)
+interact.coeffs <- interact.summary$coefficients
+interact.p.values <- interact.coeffs[, 4]
+interact.p.values <- round(interact.p.values, 3)
+interact.p.values[interact.p.values == 0] <- NA
+interact.p.values <- as.character(interact.p.values)
+interact.p.values[is.na(interact.p.values)] <- "< 0.001"
+names(interact.p.values) <- rownames(interact.coeffs)
+```
+
+And the results of the linear model are:
+
+|Parameter|Parameter Estimate|Standard Error|Pr($\neq0$)|
+|---------|:----------------:|:------------:|:---------:|
+| Intercept | `r round(interact.coeffs["(Intercept)", 1], 3)` | `r round(interact.coeffs["(Intercept)", 2], 3)` | `r interact.p.values["(Intercept)"]` |
+| Age | `r round(interact.coeffs["age", 1], 3)` | `r round(interact.coeffs["age", 2], 3)` | `r interact.p.values["age"]` |
+| BMI | `r round(interact.coeffs["bmi", 1], 3)` | `r round(interact.coeffs["bmi", 2], 3)` | `r interact.p.values["bmi"]` |
+| Statin use | `r round(interact.coeffs["statin", 1], 3)` | `r round(interact.coeffs["statin", 2], 3)` | `r interact.p.values["statin"]` |
+| Statin x BMI | `r round(interact.coeffs["bmi:statin", 1], 3)` | `r round(interact.coeffs["bmi:statin", 2], 3)` | `r interact.p.values["bmi:statin"]` |
+
+#### 5.2 Explain why the main effect of statin use does not represent a meaningful effect in this model. 
+
+When considering a model including the interaction between body mass index and statin, the effect of statin is non-significant. However, interpretation of this effect is not very useful, as it requires holding constant body mass index _and_ statin, as those are the two components of the interaction term. Interpreting the effect of statin on LDL requires including the interaction between statin and body mass index.
+
+#### 5.3 Construct a new variable (centered bmi) defined as [bmi – mean(bmi)], where this mean is taken over the entire dataset. Re-fit the model in this question replacing bmi with this centered version, and report the results. Explain why the main effect of statin use now represents a meaningful quantity.
+
+```{r echo = FALSE}
+hers.data$centered.bmi <- hers.data$bmi - mean(hers.data$bmi)
+centered.model <- lm(ln.LDL ~ age + centered.bmi + statin + centered.bmi * statin, data = hers.data)
+centered.summary <- summary(centered.model)
+centered.coeffs <- centered.summary$coefficients
+centered.p.values <- centered.coeffs[, 4]
+centered.p.values <- round(centered.p.values, 3)
+centered.p.values[centered.p.values == 0] <- NA
+centered.p.values <- as.character(centered.p.values)
+centered.p.values[is.na(centered.p.values)] <- "< 0.001"
+names(centered.p.values) <- rownames(centered.coeffs)
+```
+
+
+
+***
+
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-1-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-1-oliver.Rmd).
