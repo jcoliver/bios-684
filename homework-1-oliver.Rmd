@@ -233,6 +233,14 @@ centered.p.values[is.na(centered.p.values)] <- "< 0.001"
 names(centered.p.values) <- rownames(centered.coeffs)
 ```
 
+|Parameter|Parameter Estimate|Standard Error|Pr($\neq0$)|
+|---------|:----------------:|:------------:|:---------:|
+| Intercept | `r round(centered.coeffs["(Intercept)", 1], 3)` | `r round(centered.coeffs["(Intercept)", 2], 3)` | `r centered.p.values["(Intercept)"]` |
+| Age | `r round(centered.coeffs["age", 1], 3)` | `r round(centered.coeffs["age", 2], 3)` | `r centered.p.values["age"]` |
+| BMI | `r round(centered.coeffs["centered.bmi", 1], 3)` | `r round(centered.coeffs["centered.bmi", 2], 3)` | `r centered.p.values["centered.bmi"]` |
+| Statin use | `r round(centered.coeffs["statin", 1], 3)` | `r round(centered.coeffs["statin", 2], 3)` | `r centered.p.values["statin"]` |
+| Statin x BMI | `r round(centered.coeffs["centered.bmi:statin", 1], 3)` | `r round(centered.coeffs["centered.bmi:statin", 2], 3)` | `r centered.p.values["centered.bmi:statin"]` |
+
 
 
 ***
