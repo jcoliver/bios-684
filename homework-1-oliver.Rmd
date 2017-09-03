@@ -1,0 +1,76 @@
+---
+title: "Homework 1"
+author: "Jeff Oliver"
+date: "August 30, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--
+The dataset “hers.txt” available in the “Datasets” folder of the course webpage includes data from the Heart and Estrogen/Progestin Replacement study (HERS), a randomized clinical trial investigating the efficacy of hormone replacement therapy (HT) for secondary prevention of coronary heart disease. For each study subject, in addition to HT, investigators measured a set of known CHD risk factors, including LDL and HDL cholesterol levels, age, bmi, as well as other important subject characteristics, such as statin use. The dataset on the course webpage includes a row of data for each of 2747 subjects enrolled in the study. In each row, the variables are ln(LDL), age, BMI, and statin use (1=yes, 0=no).
+-->
+
+```{r echo = FALSE}
+hers.data <- read.delim(file = "data/hers.txt",
+                        header = FALSE,
+                        sep = " ")
+colnames(hers.data) <- c("ln.LDL", "age", "bmi", "statin")
+```
+
+### 1. Provide a plot of ln(LDL) against each of age, BMI, and statin use. Very briefly, provide a qualitative characterization of the associations that you see.
+
+```{r echo = FALSE}
+par(mfrow = c(2, 2))
+plot(ln.LDL ~ age, 
+     data = hers.data,
+     main = "LDL vs Age",
+     xlab = "Age (years)",
+     ylab = "ln(LDL)")
+plot(ln.LDL ~ bmi, 
+     data = hers.data,
+     main = "LDL vs BMI",
+     xlab = "BMI",
+     ylab = "ln(LDL)")
+boxplot(ln.LDL ~ statin, 
+        data = hers.data,
+        main = "LDL vs. Statin Use",
+        xlab = "Statin Use",
+        ylab = "ln(LDL",
+        names = c("No", "Yes"))
+par(mfrow = c(1, 1))
+```
+
+It is difficult to see much of a relationship between the two continuous variables (age and BMI) and the cholestorol level. There might be higher cholesterol in those subjects that were _not_ using statin, but there seems to be considerable overlap in the distribution between the two subject groups. The upper boundary of the age distribution is a little disturbing.
+
+### 2. Use PROC REG in SAS to fit a regression model to describe each of the three associations plotted in response to question 1. Provide a table showing, for each parameter in the mean part of the model, the estimated parameter, standard error and p-value from a test that the true parameter is equal to zero. Provide a brief quantitative characterization of the two associations. [HINT: The parameters in the mean part of the model in the class notes are the $\beta$’s].
+
+#### LDL vs. Age
+```{r echo = FALSE}
+predictors <- c("age", "bmi", "statin")
+model.stats <- matrix(data = NA,
+                      nrow = length(predictors),
+                      ncol = 3)
+rownames(model.stats) <- predictors
+colnames(model.stats) <- c("param.est", "std.error", "p.value")
+for (predictor in predictors) {
+  univar.model <- lm(paste0("ln.LDL ~ ", predictor), data = hers.data)
+  univar.summary <- summary(univar.model)
+  model.stats[predictor, ] <- univar.summary$coefficients[2, c(1, 2, 4)]
+}
+model.stats
+```
+
+3. Use PROC REG is SAS to fit a single model describing the multivariable association between ln(LDL) and age, BMI, and statin use.
+1) Write down a complete algebraic definition of the model being fitted, including assumptions.
+2) Based on your algebraic definition, show how ln(LDL) is associated with age, BMI, and statin use.
+3) Provide a table showing, for each parameter in the mean part of the model, the estimated parameter, standard error and p-value from a test that the true parameter is equal to zero. Provide a quantitative interpretation of the estimates and 95% confidence intervals for the parameters in this model.
+
+4. Based on the results of the analyses conducted in response to questions 1 to 3, summarize the methods, results and interpretation of this study and analysis in a brief structured paragraph in a form that is informative and suitable for an abstract for submission to a conference (which has a 250 word limit). [HINT: It would be good to provide information about the association of LDL with each predictor, notln(LDL)].
+
+5. Now suppose interest focuses on whether BMI modifies the association between ln(LDL) and statin use.
+1) Extend the model in question 3 to address this question, and report the results. Assess whether the data provide strong evidence that BMI modifies the ln(LDL): statin use association.
+2) Explain why the main effect of statin use does not represent a meaningful effect in this model. 
+3) Construct a new variable (centered bmi) defined as [bmi – mean(bmi)], where this mean is taken over the entire dataset. Re-fit the model in this question replacing bmi with this centered version, and report the results. Explain why the main effect of statin use now represents a meaningful quantity.
