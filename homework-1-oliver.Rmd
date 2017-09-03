@@ -2,7 +2,9 @@
 title: "Homework 1"
 author: "Jeff Oliver"
 date: "August 30, 2017"
-output: pdf_document
+output: 
+  pdf_document:
+  latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -73,6 +75,56 @@ The associations between each response variable and cholesterol are significant 
 
 ### 3. Use PROC REG is SAS to fit a single model describing the multivariable association between ln(LDL) and age, BMI, and statin use.
 #### 1) Write down a complete algebraic definition of the model being fitted, including assumptions.
+
+The general model is: 
+
+$$
+Y_{j} = \beta_{0} + \beta_{1}X_{j1} + \beta_{2}X_{j2} + \beta_{3}X_{j3} + \epsilon_{j}
+$$
+
+Where $Y_{j}$ is the observed value of ln(LDL) in the _j_^th^ subject and $X_{j1}$, $X_{j2}$, and $X_{j3}$, are the observed values of age, body mass index, and statin use, repsectively, in the _j_^th^ subject. The model for the mean is:
+
+$$
+E(Y) = X\beta
+$$
+
+Expanded, this is:
+$$
+\left( 
+\begin{array}{c}
+E(Y_{1}) \\ E(Y_{2}) \\ \vdots \\ E(Y_{n})
+\end{array} 
+\right)
+=
+\begin{pmatrix}
+X_{11} & X_{12} & X_{13} \\
+X_{21} & X_{22} & X_{23} \\
+\vdots & \vdots & \vdots \\
+X_{n1} & X_{n2} & X_{n3}
+\end{pmatrix}
+\left ( 
+\begin{array}{c}
+\beta_{1} \\ \beta_{2} \\ \beta_{3}
+\end{array}
+\right)
+=
+\begin{pmatrix}
+\beta_{1}X_{11} + \beta_{2}X_{12} + \beta_{3}X_{13} \\
+\beta_{1}X_{21} + \beta_{2}X_{22} + \beta_{3}X_{23} \\
+\vdots \\
+\beta_{1}X_{n1} + \beta_{2}X_{n2} + \beta_{3}X_{n3} \\
+\end{pmatrix}
+$$
+
+This model for the mean assumes:
+
++ **Independence** among subjects, i.e. the value of $Y_{j}$ is not related to the values of $Y_{i}$ (when $i \neq j$).
++ The relationships between response (ln(LDL)) and predictors (age, body mass index, and statin use) are **linear**.
++ The response variable ln(LDL) follows a **normal distribution**.
+* The variation in ln(LDL) should be independent of the value of the predictor variables, i.e. variance should be **homoscedastic**.
++ Individuals are sampled at the population at **random**.
+
+
 #### 2) Based on your algebraic definition, show how ln(LDL) is associated with age, BMI, and statin use.
 ```{r echo = FALSE}
 multi.model <- lm(ln.LDL ~ age + bmi + statin, data = hers.data)
@@ -81,7 +133,20 @@ multi.summary <- summary(multi.model)
 
 #### 3) Provide a table showing, for each parameter in the mean part of the model, the estimated parameter, standard error and p-value from a test that the true parameter is equal to zero. Provide a quantitative interpretation of the estimates and 95% confidence intervals for the parameters in this model.
 
+
+
 ### 4. Based on the results of the analyses conducted in response to questions 1 to 3, summarize the methods, results and interpretation of this study and analysis in a brief structured paragraph in a form that is informative and suitable for an abstract for submission to a conference (which has a 250 word limit). [HINT: It would be good to provide information about the association of LDL with each predictor, not ln(LDL)].
+
+**Introduction.**
+
+**Methods.**
+
+**Results.**
+
+**Discussion.**
+
+**Conclusion.**
+
 
 ### 5. Now suppose interest focuses on whether BMI modifies the association between ln(LDL) and statin use.
 #### 1) Extend the model in question 3 to address this question, and report the results. Assess whether the data provide strong evidence that BMI modifies the ln(LDL): statin use association.
