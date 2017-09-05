@@ -2,7 +2,7 @@
 title: "Homework 1"
 subtitle: "BIOS 684"
 author: "Jeff Oliver"
-date: "August 30, 2017"
+date: "05 September 2017"
 output: 
   pdf_document:
   latex_engine: xelatex
@@ -97,7 +97,7 @@ Results of univariate linear models, measuring individual associations between l
 | `r rownames(model.stats)[2]` | `r round(model.stats[2, 1], 3)` | `r round(model.stats[2, 2], 3)` | `r univar.p.values["bmi"]` |
 | `r rownames(model.stats)[3]` | `r round(model.stats[3, 1], 3)` | `r round(model.stats[3, 2], 3)` | `r univar.p.values["statin"]` |
 
-The associations between each response variable and cholesterol are significant at the $\alpha = 0.05$ level. Comparing the univariate models, statin use had the largest effect, with statin use reducing ln(LDL) by 0.12 units (I don't know how LDL was measured, so I wasn't sure about units). Body mass index had a positive relationship on ln(LDL), while age had a negative impact on ln(LDL).
+The associations between each response variable and cholesterol are significant at the $\alpha = 0.05$ level. Comparing the univariate models, statin use had the largest effect, with statin use reducing ln(LDL) by `r abs(round(model.stats[3, 1], 2))` units (I don't know how LDL was measured, so I wasn't sure about units). Body mass index had a positive relationship on ln(LDL), while age had a negative impact on ln(LDL).
 
 ### 3. Use PROC REG is SAS to fit a single model describing the multivariable association between ln(LDL) and age, BMI, and statin use.
 #### 3.1 Write down a complete algebraic definition of the model being fitted, including assumptions.
@@ -124,7 +124,7 @@ Expanded, this is:
 $$
 \left( 
 \begin{array}{c}
-E(Y_{1}) \\ E(Y_{2}) \\ \vdots \\ E(Y_{n})
+E(Y_{1}|X_{11}, X_{12}, X_{13}) \\ E(Y_{2}|X_{21}, X_{22}, X_{23}) \\ \vdots \\ E(Y_{n}|X_{n1}, X_{n2}, X_{n3})
 \end{array} 
 \right)
 =
