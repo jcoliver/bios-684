@@ -196,7 +196,7 @@ exp.coeffs <- exp(x = multi.coeffs[, 1])
 effects <- abs(1 - exp.coeffs) * 100
 ```
 
-+ Age: Increasing age led to a reduction in LDL, with LDL decreasing approximately `r round(effects["age"], 2)`% per year, when body mass index and statin use are held constant. 
++ Age: Increasing age led to a reduction in LDL, with LDL decreasing approximately `r round(effects["age"], 2)`% per year, when body mass index and statin use are held constant. However, this association is not significant at the $\alpha = 0.05$ level.
 + BMI: One unit increase in body mass index decreased LDL levels by `r round(effects["bmi"], 2)`%, when age and statin use are held constant.
 + Statin use: Subjects on statin had LDL levels `r round(effects["statin"], 2)`% lower than those subjects not on statin, while controlling for age and body mass index.
 
