@@ -49,11 +49,26 @@ dental.data <- dental.data[dental.data$gender == "F", ]
 ## PART A: Descriptive Analyses
 ### 1. Plot the observed trajectories of distance for the 11 girls (all on one plot). Briefly, describe the important patterns that are apparent in the plot. (hint: use proc gplot)
 
+The plot below shows pairwise comparisons between measurements of the same subject at different time points (below diagonal) and the correlation coefficient (r^2^) for the relationship (above diagonal):
 ```{r echo = FALSE}
+# Function to print correlation coefficient; copied shamelessly from pairs documentation
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- abs(cor(x, y))
+    txt <- format(c(r, 0.123456789), digits = digits)[1]
+    txt <- paste0(prefix, txt)
+    if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+    text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+# Create scatterplot of matrices to inspect data
 pairs(dental.data[, 3:6], 
       labels = c("Week 8", "Week 10", "Week 12", "Week 14"),
-      upper.panel = NULL)
+      upper.panel = panel.cor)
 ```
+
+There is very high within-subject correlation among time samples. Interestingly, the within-subject correlation does not appear to decrease much with time (e.g. the correlation coefficient between week 8 and week 10 is effectively the same as between week 8 and week 14).
 
 ### 2. Obtain descriptive statistics for the distances in girls including means and standard deviations at each measurement occasion. Plot the means against time and comment on the shape of their trajectory. Also, comment on how the standard deviations are changing with time.
 
@@ -68,7 +83,7 @@ pairs(dental.data[, 3:6],
 
 #### b. Compare the variances and covariances for the two methods of estimation (i.e. ML versus REML). If they are not the same, comment on why they are different and state which method should be preferred and why?
 
-**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix (\sigma)because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of \sigma. Describe when to use which one.
+**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix ($\sigma$)because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of $\sigma$. Describe when to use which one.
 
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
