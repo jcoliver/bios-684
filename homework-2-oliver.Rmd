@@ -68,6 +68,8 @@ pairs(dental.data[, 3:6],
 
 #### b. Compare the variances and covariances for the two methods of estimation (i.e. ML versus REML). If they are not the same, comment on why they are different and state which method should be preferred and why?
 
+**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix (\sigma)because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of \sigma. Describe when to use which one.
+
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
 ### 6. Using METHOD=ML and an unstructured variance-covariance structure, fit a model which assumes that the mean distance changes linearly with time.
@@ -77,3 +79,4 @@ pairs(dental.data[, 3:6],
 #### b. By undertaking a likelihood ratio test, evaluate the goodness of fit of this model compared with the model fitted (with METHOD=ML) in question 5. Which model do you prefer and why?
 
 #### c. Why should you not use the REML log likelihood to compare models in this question?
+Describe how REML creates non-nested models
