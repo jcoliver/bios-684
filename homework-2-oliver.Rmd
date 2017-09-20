@@ -38,8 +38,12 @@ measurements for the girls.
 # Read in data
 dental.data <- read.csv(file = "data/dental.csv",
                         header = FALSE)
+
+# Sampling vector for later use
+years <- c(8, 10, 12, 14)
+
 # Add column names
-colnames(dental.data) <- c("ID", "gender", "m.8", "m.10", "m.12", "m.14")
+colnames(dental.data) <- c("ID", "gender", paste0("y.", years))
 
 # Subset data
 dental.data <- dental.data[dental.data$gender == "F", ]
@@ -64,15 +68,61 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
 
 # Create scatterplot of matrices to inspect data
 pairs(dental.data[, 3:6], 
-      labels = c("Week 8", "Week 10", "Week 12", "Week 14"),
+      labels = c("Year 8", "Year 10", "Year 12", "Year 14"),
       upper.panel = panel.cor)
 ```
 
-There is very high within-subject correlation among time samples. Interestingly, the within-subject correlation does not appear to decrease much with time (e.g. the correlation coefficient between week 8 and week 10 is effectively the same as between week 8 and week 14).
+There is very high within-subject correlation among time samples. Interestingly, the within-subject correlation does not appear to decrease much with time (e.g. the correlation coefficient between year 8 and year 10 is effectively the same as between year 8 and year 14).
 
 ### 2. Obtain descriptive statistics for the distances in girls including means and standard deviations at each measurement occasion. Plot the means against time and comment on the shape of their trajectory. Also, comment on how the standard deviations are changing with time.
 
+```{r echo = FALSE}
+distance.means <- colMeans(x = dental.data[, 3:6])
+distance.sd <- apply(X = dental.data[, 3:6], MARGIN = 2, FUN = sd)
+```
+
+|Year|Mean|Standard Deviation|
+|:--:|:--:|:----------------:|
+| `r years[1]` | `r round(distance.means[1], 2)` | `r round(distance.sd[1], 2)` |
+| `r years[2]` | `r round(distance.means[2], 2)` | `r round(distance.sd[2], 2)` |
+| `r years[3]` | `r round(distance.means[3], 2)` | `r round(distance.sd[3], 2)` |
+| `r years[4]` | `r round(distance.means[4], 2)` | `r round(distance.sd[4], 2)` |
+
+```{r echo = FALSE}
+plot(x = c(8, 10, 12, 14),
+     y = distance.means,
+     xlab = "Measurement year",
+     ylab = "Mean distance (mm)",
+     main = "Mean distance over time")
+```
+
+The mean distance between the center of the pituitary gland to the pteryomaxillary fissure is increasing over time.
+
+```{r echo = FALSE}
+plot(x = c(8, 10, 12, 14),
+     y = distance.sd,
+     xlab = "Measurement year",
+     ylab = "Distance standard deviation (mm)",
+     main = "Standard deviation over time")
+```
+
+In general, standard deviations appear to increase over time, although this is not absolute, as year 10 has the lowest standard deviation.
+
 ### 3. Obtain the variance-covariance and correlation matrices for the repeated measurements over time. Briefly, describe the important patterns in the correlations.
+
+```{r echo = FALSE}
+library(tidyr)
+# Convert to "long format"
+dental.long <- gather(data = dental.data, 
+                         key = year, 
+                         value = distance,
+                         -ID, -gender)
+# Add column for treating year as a number
+dental.long$year.num <- as.numeric(gsub(pattern = "y.", "", x = dental.long$year))
+
+
+```
+
 
 ### 4. Identify one unexpected feature of this correlation structure generated in question 3. Provide a possible reason for this unexpected feature.
 
