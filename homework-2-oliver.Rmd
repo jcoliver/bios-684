@@ -41,9 +41,10 @@ dental.data <- read.csv(file = "data/dental.csv",
 
 # Sampling vector for later use
 years <- c(8, 10, 12, 14)
+years.chr <- c("08", "10", "12", "14")
 
 # Add column names
-colnames(dental.data) <- c("ID", "gender", paste0("y.", years))
+colnames(dental.data) <- c("ID", "gender", paste0("y.", years.chr))
 
 # Subset data
 dental.data <- dental.data[dental.data$gender == "F", ]
@@ -112,7 +113,8 @@ Standard deviations are _not_ constant through time, illustrating **heterogeneit
 
 The variance-covariance matrix:
 ```{r echo = FALSE}
-cov(dental.data[, 3:6])
+dental.var.cov <- cov(dental.data[, 3:6])
+dental.var.cov
 ```
 
 The correlation matrix:
@@ -130,7 +132,7 @@ There appears little change in the correlation matrix over time. This is in cont
 ### 5. Use PROC MIXED to fit a repeated measures model in which there is separate parameter for the mean distance at each of the four ages [HINT: Use the NOINT option on the MODEL statement]. Use an unstructured variance-covariance structure. For estimating parameters, fit the model using (i) the METHOD=ML option and (ii) the METHOD=REML option on the PROC MIXED statement.
 
 ```{r echo = FALSE}
-library(tidyr)
+library("tidyr")
 # Convert to "long format"
 dental.long <- gather(data = dental.data, 
                          key = year, 
@@ -139,18 +141,69 @@ dental.long <- gather(data = dental.data,
 # Add column for treating year as a number
 dental.long$year.num <- as.numeric(gsub(pattern = "y.", "", x = dental.long$year))
 
-# Make sure our year column is treated as a factor
-dental.long$year <- factor(dental.long$year, levels = paste0("y.", years))
+# Make sure our year column is treated as a factor (and set year 8 as reference)
+dental.long$year <- factor(dental.long$year, levels = paste0("y.", years.chr))
 
-# Run generalized least squares to get model for variance-covariance matrices?
+# Make sure our ID column is treated as a factor
+dental.long$ID <- factor(dental.long$ID)
+
+library("nlme")
+# Run full model with parameter for each of the four ages using *ML* parameter estimation
+full.ML <- gls(distance ~ year - 1,
+                data = dental.long,
+                correlation = corSymm(form = ~1|ID), # Unstructured variance-covariance
+                weights = varIdent(form = ~ 1|year), 
+                method = "ML")
+# Get variance-covariance matrix for ML estimate:
+full.ML.cov <- getVarCov(obj = full.ML)
+rownames(full.ML.cov) <- colnames(full.ML.cov) <- paste0("y.", years.chr)
+
+# Run full model with parameter for each of the four ages using *REML* parameter estimation
+full.REML <- gls(distance ~ year - 1,
+                 data = dental.long,
+                 correlation = corSymm(form = ~1|ID), # Unstructured variance-covariance
+                 weights = varIdent(form = ~ 1|year), 
+                 method = "REML")
+# Get variance-covariance matrix for ML estimate:
+full.REML.cov <- getVarCov(obj = full.REML)
+rownames(full.REML.cov) <- colnames(full.REML.cov) <- paste0("y.", years.chr)
 ```
-
 
 #### a. Does either method of estimation give the same estimates of the variances and covariances as in your answer to question 3? If so, which one or ones?
 
+The ML variance-covariance matrix:
+```{r echo = FALSE}
+full.ML.cov[]
+```
+
+The REML variance-covariance matrix:
+```{r echo = FALSE}
+full.REML.cov[]
+```
+
+Neither estimation approach produced a variance-covariance matrix identical to the one from question 3, although the REML estimation approach did come a little closer than the ML estimation.
+
+The difference between the ML-estimate variance-covariance matrix and the matrix for question 3:
+```{r echo = FALSE}
+round(full.ML.cov[] - dental.var.cov, 2)
+```
+
+The difference between the REML-estimate variance-covariance matrix and the matrix for question 3:
+```{r echo = FALSE}
+round(full.REML.cov[] - dental.var.cov, 2)
+```
+
 #### b. Compare the variances and covariances for the two methods of estimation (i.e. ML versus REML). If they are not the same, comment on why they are different and state which method should be preferred and why?
 
-**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix ($\sigma$)because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of $\sigma$. Describe when to use which one.
+The variance-covariance estimates from the REML-estimation are all higher than the estimates from the ML-estimation; note the matrix of these differences (REML - ML) is comprised of all positive values:
+
+```{r echo = FALSE}
+round(full.REML.cov[] - full.ML.cov[], 2)
+```
+
+
+
+**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix ($\Sigma$) because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of $\Sigma$. Describe when to use which one.
 
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
