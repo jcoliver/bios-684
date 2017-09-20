@@ -72,7 +72,7 @@ pairs(dental.data[, 3:6],
       upper.panel = panel.cor)
 ```
 
-There is very high within-subject correlation among time samples. Interestingly, the within-subject correlation does not appear to decrease much with time (e.g. the correlation coefficient between year 8 and year 10 is effectively the same as between year 8 and year 14).
+There is high **within-subject positive correlation** between pairs of sampling times. Interestingly, the within-subject correlation does not appear to decrease much with time (e.g. the correlation coefficient between year 8 and year 10 is effectively the same as between year 8 and year 14).
 
 ### 2. Obtain descriptive statistics for the distances in girls including means and standard deviations at each measurement occasion. Plot the means against time and comment on the shape of their trajectory. Also, comment on how the standard deviations are changing with time.
 
@@ -106,9 +106,28 @@ plot(x = c(8, 10, 12, 14),
      main = "Standard deviation over time")
 ```
 
-In general, standard deviations appear to increase over time, although this is not absolute, as year 10 has the lowest standard deviation.
+Standard deviations are _not_ constant through time, illustrating **heterogeneity in variation**. In general, standard deviations appear to increase over time, although this is not absolute, as year 10 has the lowest standard deviation.
 
 ### 3. Obtain the variance-covariance and correlation matrices for the repeated measurements over time. Briefly, describe the important patterns in the correlations.
+
+The variance-covariance matrix:
+```{r echo = FALSE}
+cov(dental.data[, 3:6])
+```
+
+The correlation matrix:
+```{r echo = FALSE}
+cor(dental.data[, 3:6])
+```
+
+There is high within-subject correlation between measurements at different times ($|\rho| >> 0$ for all pairwise comparisons).
+
+### 4. Identify one unexpected feature of this correlation structure generated in question 3. Provide a possible reason for this unexpected feature.
+
+There appears little change in the correlation matrix over time. This is in contrast to the expectation that correlations should decrease with increasing time separation. There could be little room for change to occur over the developmental period in which the measurements were taken. That is, if most of the growth between the pituitary gland to the pteryomaxillary fissure occurs before age eight in girls, we would expect little change in the correlation between distance measurements at different time points after eight years.
+
+## PART B: Repeated Measures Models
+### 5. Use PROC MIXED to fit a repeated measures model in which there is separate parameter for the mean distance at each of the four ages [HINT: Use the NOINT option on the MODEL statement]. Use an unstructured variance-covariance structure. For estimating parameters, fit the model using (i) the METHOD=ML option and (ii) the METHOD=REML option on the PROC MIXED statement.
 
 ```{r echo = FALSE}
 library(tidyr)
@@ -120,14 +139,12 @@ dental.long <- gather(data = dental.data,
 # Add column for treating year as a number
 dental.long$year.num <- as.numeric(gsub(pattern = "y.", "", x = dental.long$year))
 
+# Make sure our year column is treated as a factor
+dental.long$year <- factor(dental.long$year, levels = paste0("y.", years))
 
+# Run generalized least squares to get model for variance-covariance matrices?
 ```
 
-
-### 4. Identify one unexpected feature of this correlation structure generated in question 3. Provide a possible reason for this unexpected feature.
-
-## PART B: Repeated Measures Models
-### 5. Use PROC MIXED to fit a repeated measures model in which there is separate parameter for the mean distance at each of the four ages [HINT: Use the NOINT option on the MODEL statement]. Use an unstructured variance-covariance structure. For estimating parameters, fit the model using (i) the METHOD=ML option and (ii) the METHOD=REML option on the PROC MIXED statement.
 
 #### a. Does either method of estimation give the same estimates of the variances and covariances as in your answer to question 3? If so, which one or ones?
 
