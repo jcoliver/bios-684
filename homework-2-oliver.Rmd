@@ -149,7 +149,7 @@ dental.long$ID <- factor(dental.long$ID)
 
 library("nlme")
 # Run full model with parameter for each of the four ages using *ML* parameter estimation
-full.ML <- gls(distance ~ year - 1,
+full.ML <- gls(distance ~ year,
                 data = dental.long,
                 correlation = corSymm(form = ~1|ID), # Unstructured variance-covariance
                 weights = varIdent(form = ~ 1|year), 
@@ -159,7 +159,7 @@ full.ML.cov <- getVarCov(obj = full.ML)
 rownames(full.ML.cov) <- colnames(full.ML.cov) <- paste0("y.", years.chr)
 
 # Run full model with parameter for each of the four ages using *REML* parameter estimation
-full.REML <- gls(distance ~ year - 1,
+full.REML <- gls(distance ~ year,
                  data = dental.long,
                  correlation = corSymm(form = ~1|ID), # Unstructured variance-covariance
                  weights = varIdent(form = ~ 1|year), 
@@ -201,15 +201,57 @@ The variance-covariance estimates from the REML-estimation are all higher than t
 round(full.REML.cov[] - full.ML.cov[], 2)
 ```
 
-
-
-**Check & revise language**: Different because ML is a biased estimator of the variance-covariance matrix ($\Sigma$) because it is based on estimated beta hats; in contrast, REML <description of what REML is doing to create an unbiased estimator of the variance-covariance matrix> is an unbiased esimator of $\Sigma$. Describe when to use which one.
+This is expected because while the estimators for $\sigma^2$ have identical numerators, the ML-estimate has the denominator $K$ (the product of the number of subjects and the number of sampling points, $N \times n$), the REML-estimate has the denominator $K - p$, where $p$ corresponds to the number of $\beta$ coefficients. If we are interested in unbiased sample of the variance-covariance matrix, the REML approach would the the most appropriate one to use.
 
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
+Linear combinations of the estimated $\beta$ coefficients in both the ML and REML are equal to the sample means for each time sampling point. This is due to the design structure of our regression models:
+
+$$
+X_{i}
+=
+\begin{pmatrix}
+1 & 0 & 0 & 0 \\
+1 & 1 & 0 & 0 \\
+1 & 0 & 1 & 0 \\
+1 & 0 & 0 & 1 \\
+\end{pmatrix}
+$$
+
+Where $X_{ij}$ is equal to 1 if the response was observed at time point $j$ and 0 otherwise. This leads to the following linear combinations
+
+$$
+\begin{aligned}
+\begin{array}{l}
+\mu_{1} = E(Y_{i1}) = \beta_{1} \\
+\mu_{2} = E(Y_{i2}) = \beta_{1} + \beta_{2} \\
+\mu_{3} = E(Y_{i3}) = \beta_{1} + \beta_{3} \\
+\mu_{4} = E(Y_{i4}) = \beta_{1} + \beta_{4} \\
+\end{array} 
+\end{aligned}
+$$
+Using the coefficient estimates from the REML model:
+
+$\mu_{1} =$ `r as.character(round(full.REML$coefficients[[1]], 2))`  
+$\mu_{2} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.character(round(full.REML$coefficients[[2]], 2))` = `r as.character(round(full.REML$coefficients[[1]] + full.REML$coefficients[[2]], 2))`  
+$\mu_{3} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.character(round(full.REML$coefficients[[3]], 2))` = `r as.character(round(full.REML$coefficients[[1]] + full.REML$coefficients[[3]], 2))`  
+$\mu_{4} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.character(round(full.REML$coefficients[[4]], 2))` = `r as.character(round(full.REML$coefficients[[1]] + full.REML$coefficients[[4]], 2))`  
+these correspond to the sample means presented in the table for question 2.
+
 ### 6. Using METHOD=ML and an unstructured variance-covariance structure, fit a model which assumes that the mean distance changes linearly with time.
 
+```{r echo = FALSE}
+# Run linear model using *ML* parameter estimation
+linear.ML <- gls(distance ~ year.num,
+                 data = dental.long,
+                 correlation = corSymm(form = ~1|ID), # Unstructured variance-covariance
+                 weights = varIdent(form = ~ 1|year.num), 
+                 method = "ML")
+```
+
 #### a. Why can this model be considered to be nested within the model fitted in question 5?
+This model is nested within the full ML model there is a linear combination of the full model parameters that effectively reduces down to the linear model, making the linear model a special case of the full model.
+
 
 #### b. By undertaking a likelihood ratio test, evaluate the goodness of fit of this model compared with the model fitted (with METHOD=ML) in question 5. Which model do you prefer and why?
 
