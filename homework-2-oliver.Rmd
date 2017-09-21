@@ -201,7 +201,8 @@ The variance-covariance estimates from the REML-estimation are all higher than t
 round(full.REML.cov[] - full.ML.cov[], 2)
 ```
 
-This is expected because while the estimators for $\sigma^2$ have identical numerators, the ML-estimate has the denominator $K$ (the product of the number of subjects and the number of sampling points, $N \times n$), the REML-estimate has the denominator $K - p$, where $p$ corresponds to the number of $\beta$ coefficients. If we are interested in unbiased sample of the variance-covariance matrix, the REML approach would the the most appropriate one to use.
+This is expected because while the estimators for $\sigma^2$ have identical numerators, the ML-estimate has the denominator $K$ (the product of the number of subjects and the number of sampling points, $N \times n$), the REML-estimate has the denominator $K - p$, where $p$ corresponds to the number of $\beta$ coefficients. The ML estimator of $\sigma^2$ is biased because it is based on maximizing a likelihood function which includes $\beta$ coefficients which themselves are estimates. The REML estimator is unbiased because it corrects for the fact that the $\beta$s are estimates by subtracting an additional term in the likelihood function, based on the residuals.  
+If we are interested in unbiased sample of the variance-covariance matrix, the REML approach would the the most appropriate one to use.
 
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
@@ -237,6 +238,8 @@ $\mu_{2} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.char
 $\mu_{3} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.character(round(full.REML$coefficients[[3]], 2))` = `r as.character(round(full.REML$coefficients[[1]] + full.REML$coefficients[[3]], 2))`  
 $\mu_{4} =$ `r as.character(round(full.REML$coefficients[[1]], 2))` + `r as.character(round(full.REML$coefficients[[4]], 2))` = `r as.character(round(full.REML$coefficients[[1]] + full.REML$coefficients[[4]], 2))`  
 these correspond to the sample means presented in the table for question 2.
+  
+Note: the sample R code had a slightly different model specification in the call to `gls`: `distance ~ time - 1` (I used `distance ~ time`). While the former resulted in $\beta$ coefficients that were identical to the sample means, I did not quite understand how the `-1` caused this, so I did not do it that way.
 
 ### 6. Using METHOD=ML and an unstructured variance-covariance structure, fit a model which assumes that the mean distance changes linearly with time.
 
@@ -250,8 +253,47 @@ linear.ML <- gls(distance ~ year.num,
 ```
 
 #### a. Why can this model be considered to be nested within the model fitted in question 5?
-This model is nested within the full ML model there is a linear combination of the full model parameters that effectively reduces down to the linear model, making the linear model a special case of the full model.
+This model is nested within the full ML model there is a linear combination of the full model parameters that effectively reduces down to the linear model, making the linear model a special case of the full model. I _think_ the following illustrates this, but I may have gotten my math wrong in some parts:
 
+The full model specification, where each sampling point is exected to have a different mean response is:
+
+$$
+E(Y_{ij}) = \beta_{1}^F + \beta_{2}^FX_{i2} + \beta_{3}^FX_{i3} + \beta_{4}^FX_{i4}
+$$
+where $X_{ij} = 1$ if sampled during time point $j$, and zero otherwise; the superscript $F$ is used to distinguish these $\beta$s from those of the linear model.  
+
+The linear model is:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2}t_{ij}
+$$
+where $t_{ij}$ is the time the sample was taken (8, 10, 12, or 14 years).
+
+Considering the expected values for $Y_{i}$ for each of the time points ($j = 8, 10, 12, 14$) while substituting in values for $X_{ij}$ and $t_{ij}$:
+
+$$
+\begin{aligned}
+\begin{array}{l}
+E(Y_{i8}) = \beta_{1}^F = \beta_{1} + 8\beta_{2} \\
+E(Y_{i10}) = \beta_{1}^F + \beta_{2}^F = \beta_{1} + 10\beta_{2} \\
+E(Y_{i12}) = \beta_{1}^F + \beta_{3}^F  = \beta_{1} + 12\beta_{2} \\
+E(Y_{i14}) = \beta_{1}^F + \beta_{4}^F  = \beta_{1} + 14\beta_{2} \\
+\end{array} 
+\end{aligned}
+$$
+
+We can then solve for the values of our $\beta^F$s in terms of the $\beta$ coefficients from the linear model:
+
+$$
+\begin{aligned}
+\begin{array}{l}
+\beta_{1}^F = \beta_{1} + 8\beta_{2} \\
+\beta_{2}^F = \beta_{1} + 10\beta_{2} - \beta_{1}^F = \beta_{1} + 10\beta_{2} - (\beta_{1} + 8\beta_{2}) = 2\beta_{2}\\
+\beta_{3}^F  = \beta_{1} + 12\beta_{2} - \beta_{1}^F = \beta_{1} + 12\beta_{2} - (\beta_{1} + 8\beta_{2}) = 4\beta_{2}\\
+\beta_{4}^F  = \beta_{1} + 14\beta_{2} - \beta_{1}^F = \beta_{1} + 14\beta_{2} - (\beta_{1} + 8\beta_{2}) = 6\beta_{2}\\
+\end{array} 
+\end{aligned}
+$$
+Thus the full model can be considered a special case of the linear model, and the latter is nested within the former, making a likelihood ratio test appropriate for model comparison.
 
 #### b. By undertaking a likelihood ratio test, evaluate the goodness of fit of this model compared with the model fitted (with METHOD=ML) in question 5. Which model do you prefer and why?
 
