@@ -297,5 +297,12 @@ Thus the full model can be considered a special case of the linear model, and th
 
 #### b. By undertaking a likelihood ratio test, evaluate the goodness of fit of this model compared with the model fitted (with METHOD=ML) in question 5. Which model do you prefer and why?
 
+```{r echo = FALSE}
+model.compare <- anova(linear.ML, full.ML)
+```
+
+The full model does not provide a significantly better fit than does the linear model ($2\Delta ln(L) =$ `r round(model.compare$L.Ratio[2], 3)`, $p =$ `r round(model.compare$"p-value"[2], 3)`). I would thus prefer the linear model because it requires fewer parameters to explain the response over time.
+
 #### c. Why should you not use the REML log likelihood to compare models in this question?
-Describe how REML creates non-nested models
+
+REML models cannot be considered estimates.
