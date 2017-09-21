@@ -201,8 +201,8 @@ The variance-covariance estimates from the REML-estimation are all higher than t
 round(full.REML.cov[] - full.ML.cov[], 2)
 ```
 
-This is expected because while the estimators for $\sigma^2$ have identical numerators, the ML-estimate has the denominator $K$ (the product of the number of subjects and the number of sampling points, $N \times n$), the REML-estimate has the denominator $K - p$, where $p$ corresponds to the number of $\beta$ coefficients. The ML estimator of $\sigma^2$ is biased because it is based on maximizing a likelihood function which includes $\beta$ coefficients which themselves are estimates. The REML estimator is unbiased because it corrects for the fact that the $\beta$s are estimates by subtracting an additional term in the likelihood function, based on the residuals.  
-If we are interested in unbiased sample of the variance-covariance matrix, the REML approach would the the most appropriate one to use.
+This is expected because while the ML and REML estimators for $\sigma^2$ have identical numerators, the ML-estimate has the denominator $K$ (the product of the number of subjects and the number of sampling points, $N \times n$) while the REML-estimate has the denominator $K - p$, where $p$ corresponds to the number of $\beta$ coefficients. The ML estimator of $\sigma^2$ is biased because it is based on maximizing a likelihood function which includes $\beta$ coefficients which themselves are estimates. The REML estimator is unbiased because it corrects for the fact that the $\beta$s are estimates by subtracting an additional term in the likelihood function, based on the residuals.  
+If we are interested in unbiased sample of the variance-covariance matrix, the REML approach would be the most appropriate one to use.
 
 #### c. Compare the estimated betas in the regression model to the sample means calculated in question 2. Provide a reason for any relationship you notice between these two sets of estimates.
 
@@ -253,7 +253,7 @@ linear.ML <- gls(distance ~ year.num,
 ```
 
 #### a. Why can this model be considered to be nested within the model fitted in question 5?
-This model is nested within the full ML model there is a linear combination of the full model parameters that effectively reduces down to the linear model, making the linear model a special case of the full model. I _think_ the following illustrates this, but I may have gotten my math wrong in some parts:
+This model is nested within the full ML model because there is a linear combination of the full model parameters that effectively reduces down to the linear model, making the linear model a special case of the full model. I _think_ the following illustrates this, but I may have gotten my math wrong in some parts:
 
 The full model specification, where each sampling point is exected to have a different mean response is:
 
@@ -293,7 +293,7 @@ $$
 \end{array} 
 \end{aligned}
 $$
-Thus the full model can be considered a special case of the linear model, and the latter is nested within the former, making a likelihood ratio test appropriate for model comparison.
+Thus the **full model can be considered a special case of the linear model**, and the latter is nested within the former, making a likelihood ratio test appropriate for model comparison.
 
 #### b. By undertaking a likelihood ratio test, evaluate the goodness of fit of this model compared with the model fitted (with METHOD=ML) in question 5. Which model do you prefer and why?
 
@@ -301,8 +301,8 @@ Thus the full model can be considered a special case of the linear model, and th
 model.compare <- anova(linear.ML, full.ML)
 ```
 
-The full model does not provide a significantly better fit than does the linear model ($2\Delta ln(L) =$ `r round(model.compare$L.Ratio[2], 3)`, $p =$ `r round(model.compare$"p-value"[2], 3)`). I would thus prefer the linear model because it requires fewer parameters to explain the response over time.
+The **full model does not provide a significantly better fit than does the linear model** ($2\Delta ln(L) =$ `r round(model.compare$L.Ratio[2], 3)`, $p =$ `r round(model.compare$"p-value"[2], 3)`). I would thus prefer the linear model because it requires fewer parameters to explain the response over time.
 
 #### c. Why should you not use the REML log likelihood to compare models in this question?
 
-REML models cannot be considered estimates.
+In accounting for the fact that the $\beta$ coefficients are estimated, the log-likelihood function that REML maximizes is dependent on those coefficients. Thus it is not appropriate to compare the likelihoods of mean responses between different REML models because they are based on different transformations of the responses. I am not sure if this characterization means the REML models cannot be considered nested (Fitzmaurice et al. still call them "nested"), but the difference in likelihood functions is what ultimately makes them incomparable.
