@@ -306,3 +306,7 @@ The **full model does not provide a significantly better fit than does the linea
 #### c. Why should you not use the REML log likelihood to compare models in this question?
 
 In accounting for the fact that the $\beta$ coefficients are estimated, the log-likelihood function that REML maximizes is dependent on those coefficients. Thus it is not appropriate to compare the likelihoods of mean responses between different REML models because they are based on different transformations of the responses. I am not sure if this characterization means the REML models cannot be considered nested (Fitzmaurice et al. still call them "nested"), but the difference in likelihood functions is what ultimately makes them incomparable.
+
+***
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-2-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-2-oliver.Rmd).

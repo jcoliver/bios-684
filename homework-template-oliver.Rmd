@@ -1,0 +1,19 @@
+---
+title: "Homework [XXXX]"
+subtitle: "BIOS 684"
+author: "Jeff Oliver"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+  latex_engine: xelatex
+---
+
+<!-- FIND / REPLACE [XXXX] with homework number -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-[XXXX]-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-[XXXX]-oliver.Rmd).
