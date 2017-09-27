@@ -1,5 +1,5 @@
 ---
-title: "Homework 4"
+title: "Homework 3"
 subtitle: "BIOS 684"
 author: "Jeff Oliver"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
@@ -12,17 +12,21 @@ output:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-<!-- Purpose: To provide an introduction to the analysis of response profiles for longitudinal -->
-<!-- data. -->
+<!-- 
+DUE: Wednesday 04 October 2017
 
-<!-- Instructions: -->
-<!-- 1. For each question requiring data analysis, support your conclusions by including only the relevant SAS output in your answer. -->
+Purpose: To provide an introduction to the analysis of response profiles for longitudinal data.
 
-<!-- 2. Include your SAS program (but not your SAS output) as an appendix to your solutions. In general, this will only be reviewed during grading to help identify a major problem affecting your answers to questions.  -->
+Instructions: 
+1. For each question requiring data analysis, support your conclusions by including only the relevant SAS output in your answer. 
 
-<!-- Analysis of Response Profiles: Study of effects of treatment on rheumatoid arthritis A randomized clinical trial was completed to compare the effectiveness of 2 rheumatoid arthritis treatments. The grip strength was measured on each of the patients at 4 time points: week 0, week 1, week 2 and week 3. Grip strength is a continuous outcome. The data set is complete and balanced. Note that only a subset of patients is included in the data set for this assignment. We are most interested in determining the association between treatment and grip strength. -->
+2. Include your SAS program (but not your SAS output) as an appendix to your solutions. In general, this will only be reviewed during grading to help identify a major problem affecting your answers to questions.
 
-<!-- The data are stored in an ASCII file: compgrip.txt. Each row of the data set contains the following six variables: subject ID number, treatment indicator (1=treatment A and 2=treatment B), Y0, Y1, Y2, Y3. -->
+Analysis of Response Profiles: Study of effects of treatment on rheumatoid arthritis A randomized clinical trial was completed to compare the effectiveness of 2 rheumatoid arthritis treatments. The grip strength was measured on each of the patients at 4 time points: week 0, week 1, week 2 and week 3. Grip strength is a continuous outcome. The data set is complete and balanced. Note that only a subset of patients is included in the data set for this assignment. We are most interested in determining the association between treatment and grip strength.
+
+The data are stored in an ASCII file: compgrip.txt. Each row of the data set contains the following six variables: subject ID number, treatment indicator (1=treatment A and 2=treatment B), Y0, Y1, Y2, Y3. 
+
+-->
 
 ### 1. Obtain the sample size, and the sample means and standard deviations of the grip strengths at each occasion for each treatment group. On the same graph, plot the mean grip strength versus time (in weeks) for each of the two treatment groups. Describe the general characteristics of the time trends for the two groups.
 
@@ -34,13 +38,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ### 5. Show how the estimates for the components of $\beta$ can be used to construct the sample means at each measurement time in each treatment group. Compare these estimated means with the sample means that you obtained in question 1. Do they differ? If so, can you suggest why?
 
-### 6. Now conduct a profile analysis (week, treatment, week*treatment) on the difference vector D = (Y1-Y0, Y2-Y0, Y3-Y0). Show that this analysis yields the same conclusions as those obtained from the full profile analysis fit in question 3.
+### 6. Now conduct a profile analysis (week, treatment, week $\times$ treatment) on the difference vector D = (Y1-Y0, Y2-Y0, Y3-Y0). Show that this analysis yields the same conclusions as those obtained from the full profile analysis fit in question 3.
 
-### 7. Run an ANCOVA analysis of the outcomes (Y1, Y2, Y3), including the effects of week, treatment, and week X treatment as well as each subject’s baseline measurement as covariates. Compare both the week, treatment, and week X treatment effect estimates and standard errors to those from the profile analysis results from Q3. Explain why these results are the same or different from this earlier analysis.
-
-***
-
-
+### 7. Run an ANCOVA analysis of the outcomes (Y1, Y2, Y3), including the effects of week, treatment, and week $\times$ treatment as well as each subject’s baseline measurement as covariates. Compare both the week, treatment, and week $\times$ treatment effect estimates and standard errors to those from the profile analysis results from Q3. Explain why these results are the same or different from this earlier analysis.
 
 ***
-The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-4-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-4-oliver.Rmd).
+
+
+
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-3-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-3-oliver.Rmd).
