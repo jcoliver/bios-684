@@ -10,6 +10,7 @@ output:
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library("ggplot2")
 ```
 
 <!-- 
@@ -28,7 +29,78 @@ The data are stored in an ASCII file: compgrip.txt. Each row of the data set con
 
 -->
 
+```{r}
+# Read in data
+grip.data <- read.delim(file = "data/compgrip.txt", sep = " ", header = FALSE, stringsAsFactors = FALSE)
+
+# Name columns
+colnames(grip.data) <- c("subjectID", "treatment", "week.0", "week.1", "week.2", "week.3")
+
+# Make sure treatment is a factor
+grip.data$treatment <- as.factor(grip.data$treatment)
+```
+
 ### 1. Obtain the sample size, and the sample means and standard deviations of the grip strengths at each occasion for each treatment group. On the same graph, plot the mean grip strength versus time (in weeks) for each of the two treatment groups. Describe the general characteristics of the time trends for the two groups.
+
+```{r}
+# Function to extract relevant information for each group
+groupInfo <- function(x, treatment) {
+  group.data <- x[x$treatment == treatment, ]
+  group.size <- nrow(group.data)
+  group.means <- apply(group.data[, -c(1:2)],
+                       MARGIN = 2,
+                       FUN = mean)
+  group.sd <- apply(group.data[, -c(1:2)],
+                    MARGIN = 2,
+                    FUN = sd)
+  return(list(treatment = treatment,
+              size = group.size,
+              means = round(group.means, 3),
+              stdevs = round(group.sd, 3)))
+}
+
+# Extract size, means, and standard deviations
+treatment.1 <- groupInfo(x = grip.data, treatment = 1)
+treatment.2 <- groupInfo(x = grip.data, treatment = 2)
+```
+
+Out of a total of `r nrow(grip.data)` observations, `r treatment.1$size` were in treatment 1 and `r treatment.2$size` were in treatment 2. The sample means for each week were:
+
+| Treatment | Week 0 | Week 1 | Week 2 | Week 3 |
+|:----------|:------:|:------:|:------:|:------:|
+| `r treatment.1$treatment` | `r treatment.1$means[[1]]` | `r treatment.1$means[[2]]` | `r treatment.1$means[[3]]` | `r treatment.1$means[[4]]` |
+| `r treatment.2$treatment` | `r treatment.2$means[[1]]` | `r treatment.2$means[[2]]` | `r treatment.2$means[[3]]` | `r treatment.2$means[[4]]` |
+
+And the sample standard deviations for each week were:
+
+| Treatment | Week 0 | Week 1 | Week 2 | Week 3 |
+|:----------|:------:|:------:|:------:|:------:|
+| `r treatment.1$treatment` | `r treatment.1$stdevs[[1]]` | `r treatment.1$stdevs[[2]]` | `r treatment.1$stdevs[[3]]` | `r treatment.1$stdevs[[4]]` |
+| `r treatment.2$treatment` | `r treatment.2$stdevs[[1]]` | `r treatment.2$stdevs[[2]]` | `r treatment.2$stdevs[[3]]` | `r treatment.2$stdevs[[4]]` |
+
+```{r}
+# Create data for plot
+plot.data <- data.frame(week = c(names(treatment.1$means), names(treatment.2$means)),
+                        treatment = c(rep(x = treatment.1$treatment, times = length(treatment.1$means)), 
+                                      rep(x = treatment.2$treatment, times = length(treatment.2$means))),
+                        grip = c(as.numeric(treatment.1$means), as.numeric(treatment.2$means)),
+                        se = c(as.numeric(treatment.1$stdevs)/sqrt(treatment.1$size)), as.numeric(treatment.2$stdevs)/sqrt(treatment.1$size))
+
+plot.data$week <- gsub(pattern = "week.", replacement = "Week ", x = plot.data$week)
+plot.data$treatment <- as.factor(plot.data$treatment)
+
+means.plot <- ggplot(data = plot.data, mapping = aes(x = week, y = grip, color = treatment, group = treatment)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(data = plot.data, mapping = aes(x = week, ymin = (grip - se), ymax = (grip + se)), width = 0.2) +
+  xlab(label = "Sampling point") +
+  ylab(label = "Grip strength")
+
+means.plot
+```
+Note error bars show $\pm \enspace 1SE$ where $SE = \sigma/\sqrt{n}$.
+
+Both treatments indicate an increase in mean grip strength through time. Mean grip strength is continously increasing for treatment 1 subjects, although the rate of increase may be decreasing over time. In contrast, the increase in mean grip strength for treatment 2 subjects appears to happen within the first two weeks, then levels off after week 2.
 
 ### 2. With baseline (week 0) and the treatment A as the reference group, write out the complete definition of the regression model for the analysis of response profiles for mean grip strength. In this model, let $\beta$ denote the vector of parameters in the model for the means and assume an unstructured variance-covariance structure.
 
