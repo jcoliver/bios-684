@@ -11,6 +11,8 @@ output:
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library("ggplot2")
+library("tidyr")
+library("nlme")
 ```
 
 <!-- 
@@ -36,6 +38,10 @@ grip.data <- read.delim(file = "data/compgrip.txt", sep = " ", header = FALSE, s
 # Name columns
 colnames(grip.data) <- c("subjectID", "treatment", "week.0", "week.1", "week.2", "week.3")
 
+# Update treatment values to reflect A/B:
+grip.data$treatment[grip.data$treatment == 1] <- "A"
+grip.data$treatment[grip.data$treatment == 2] <- "B"
+
 # Make sure treatment is a factor
 grip.data$treatment <- as.factor(grip.data$treatment)
 ```
@@ -60,8 +66,8 @@ groupInfo <- function(x, treatment) {
 }
 
 # Extract size, means, and standard deviations
-treatment.1 <- groupInfo(x = grip.data, treatment = 1)
-treatment.2 <- groupInfo(x = grip.data, treatment = 2)
+treatment.1 <- groupInfo(x = grip.data, treatment = "A")
+treatment.2 <- groupInfo(x = grip.data, treatment = "B")
 ```
 
 Out of a total of `r nrow(grip.data)` observations, `r treatment.1$size` were in treatment 1 and `r treatment.2$size` were in treatment 2. The sample means for each week were:
@@ -93,18 +99,82 @@ means.plot <- ggplot(data = plot.data, mapping = aes(x = week, y = grip, color =
   geom_point() +
   geom_line() +
   geom_errorbar(data = plot.data, mapping = aes(x = week, ymin = (grip - se), ymax = (grip + se)), width = 0.2) +
+  scale_color_manual(name = "Treatment", values = c("darkred", "cadetblue")) +
   xlab(label = "Sampling point") +
   ylab(label = "Grip strength")
 
 means.plot
 ```
-Note error bars show $\pm \enspace 1SE$ where $SE = \sigma/\sqrt{n}$.
+Note error bars show $\pm 1SE$ where $SE = \sigma/\sqrt{n}$.
 
-Both treatments indicate an increase in mean grip strength through time. Mean grip strength is continously increasing for treatment 1 subjects, although the rate of increase may be decreasing over time. In contrast, the increase in mean grip strength for treatment 2 subjects appears to happen within the first two weeks, then levels off after week 2.
+In general, there appears to be an increase in mean grip strength through time. Mean grip strength is continously increasing for treatment A subjects, although the rate of increase may be decreasing over time. In contrast, the increase in mean grip strength for treatment B subjects appears to happen within the first two weeks, then levels off after week 2.
 
 ### 2. With baseline (week 0) and the treatment A as the reference group, write out the complete definition of the regression model for the analysis of response profiles for mean grip strength. In this model, let $\beta$ denote the vector of parameters in the model for the means and assume an unstructured variance-covariance structure.
 
-### 3. Using PROC MIXED, fit the model described in question 2. Include the SOLUTION (or S) option on the MODEL statement to obtain estimates and standard errors for the components of $\beta$. Include the CHISQ option on the MODEL statement and hence evaluate whether there is evidence of a difference in the pattern of change over time in mean serum cholesterol between the two treatment groups. Justify your answer.
+The regression model for the response profile of mean grip strength is:
+$$
+Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} \\
++ \beta_{6}(X_{2ij} \times X_{3ij}) + \beta_{7}(X_{2ij} \times X_{4ij}) + \beta_{8}(X_{2ij} \times X_{5ij}) + \varepsilon_{ij}
+$$
+
+Where:
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+    X_{2ij} = 
+    \begin{cases}
+      0, & \text{for treatment A} \\
+      1, & \text{for treatment B}
+    \end{cases} \\
+  X_{3ij} = 1 \text{ if measurement is for week 1, 0 otherwise} \\
+  X_{4ij} = 1 \text{ if measurement is for week 2, 0 otherwise} \\
+  X_{5ij} = 1 \text{ if measurement is for week 3, 0 otherwise}
+\end{array}
+$$
+
+The design matrix for an individual in treatment A would be:
+
+$$
+X_{i}
+=
+\begin{pmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0\\
+1 & 1 & 0 & 0 & 0 & 0 & 0\\
+1 & 0 & 1 & 0 & 0 & 0 & 0\\
+1 & 0 & 0 & 1 & 0 & 0 & 0\\
+\end{pmatrix}
+$$
+and the design matrix for an individual in treatment B would be:
+
+$$
+X_{i}
+=
+\begin{pmatrix}
+1 & 0 & 0 & 0 & 0 & 0 & 0\\
+1 & 1 & 0 & 0 & 1 & 0 & 0\\
+1 & 0 & 1 & 0 & 0 & 1 & 0\\
+1 & 0 & 0 & 1 & 0 & 0 & 1\\
+\end{pmatrix}
+$$
+
+### 3. Using PROC MIXED, fit the model described in question 2. Include the SOLUTION (or S) option on the MODEL statement to obtain estimates and standard errors for the components of $\beta$. Include the CHISQ option on the MODEL statement and hence evaluate whether there is evidence of a difference in the pattern of change over time in mean grip strength between the two treatment groups. Justify your answer.
+
+```{r}
+# Create long-format data
+grip.long <- gather(data = grip.data, key = "week", value = "grip", -subjectID, -treatment)
+
+# Make sure week column is a factor
+grip.long$week <- as.factor(grip.long$week)
+
+# Build gls model
+response.model <- gls(grip ~ week * treatment,
+                      data = grip.long,
+                      correlation = corSymm(form = ~1|subjectID),
+                      weights = varIdent(form = ~1|week))
+```
+
+Add table for beta coefficients and standard errors for each
+Report Chi-squared? Most interested about whether there is a difference in the pattern of change over time; i.e. differences getting smaller or larger over time -> a treatment x time effect
 
 ### 4. Provide an interpretation for the estimate of each component of $\beta$.
 
