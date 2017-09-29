@@ -70,14 +70,14 @@ treatment.1 <- groupInfo(x = grip.data, treatment = "A")
 treatment.2 <- groupInfo(x = grip.data, treatment = "B")
 ```
 
-Out of a total of `r nrow(grip.data)` observations, `r treatment.1$size` were in treatment 1 and `r treatment.2$size` were in treatment 2. The sample means for each week were:
+Out of a total of `r nrow(grip.data)` observations, `r treatment.1$size` were in treatment 1 and `r treatment.2$size` were in treatment 2. The sample means of grip strength for each week were:
 
 | Treatment | Week 0 | Week 1 | Week 2 | Week 3 |
 |:----------|:------:|:------:|:------:|:------:|
 | `r treatment.1$treatment` | `r treatment.1$means[[1]]` | `r treatment.1$means[[2]]` | `r treatment.1$means[[3]]` | `r treatment.1$means[[4]]` |
 | `r treatment.2$treatment` | `r treatment.2$means[[1]]` | `r treatment.2$means[[2]]` | `r treatment.2$means[[3]]` | `r treatment.2$means[[4]]` |
 
-And the sample standard deviations for each week were:
+And the sample standard deviations for grip strength in each week were:
 
 | Treatment | Week 0 | Week 1 | Week 2 | Week 3 |
 |:----------|:------:|:------:|:------:|:------:|
@@ -101,7 +101,7 @@ means.plot <- ggplot(data = plot.data, mapping = aes(x = week, y = grip, color =
   geom_errorbar(data = plot.data, mapping = aes(x = week, ymin = (grip - se), ymax = (grip + se)), width = 0.2) +
   scale_color_manual(name = "Treatment", values = c("darkred", "cadetblue")) +
   xlab(label = "Sampling point") +
-  ylab(label = "Grip strength")
+  ylab(label = "Mean grip strength")
 
 means.plot
 ```
@@ -171,12 +171,42 @@ response.model <- gls(grip ~ week * treatment,
                       data = grip.long,
                       correlation = corSymm(form = ~1|subjectID),
                       weights = varIdent(form = ~1|week))
+model.summary <- summary(response.model)
+model.anova <- anova(response.model)
 ```
 
-Add table for beta coefficients and standard errors for each
-Report Chi-squared? Most interested about whether there is a difference in the pattern of change over time; i.e. differences getting smaller or larger over time -> a treatment x time effect
+The estimates and standard errors for each of the $\beta$ coefficients:
+
+| Component   | Estimate | Standard Error |
+|:-----------:|:--------:|:--------------:|
+| $\beta_{1}$ | `r round(model.summary$tTable[1, 1], 3)` | `r round(model.summary$tTable[1, 2], 3)` |
+| $\beta_{2}$ | `r round(model.summary$tTable[2, 1], 3)` | `r round(model.summary$tTable[2, 2], 3)` |
+| $\beta_{3}$ | `r round(model.summary$tTable[3, 1], 3)` | `r round(model.summary$tTable[3, 2], 3)` |
+| $\beta_{4}$ | `r round(model.summary$tTable[4, 1], 3)` | `r round(model.summary$tTable[4, 2], 3)` |
+| $\beta_{5}$ | `r round(model.summary$tTable[5, 1], 3)` | `r round(model.summary$tTable[5, 2], 3)` |
+| $\beta_{6}$ | `r round(model.summary$tTable[6, 1], 3)` | `r round(model.summary$tTable[6, 2], 3)` |
+| $\beta_{7}$ | `r round(model.summary$tTable[7, 1], 3)` | `r round(model.summary$tTable[7, 2], 3)` |
+| $\beta_{8}$ | `r round(model.summary$tTable[8, 1], 3)` | `r round(model.summary$tTable[8, 2], 3)` |
+
+**HOW TO GET CHI-SQUARE STATISTIC?**
+Can get F-value and p-value via `anova`
 
 ### 4. Provide an interpretation for the estimate of each component of $\beta$.
+
+Interpreting betas is useful to consider each case
+
+For a subject in treatment A, the expected mean grip strength for the four measurement points are:
+
+| Week | $E(Y_{ij})$ |
+|:----:|:------------------------|
+| 0    | $\beta_{1}$             |
+| 1    | $\beta_{1}X_{1ij} + \beta_{3}$ |
+| 2    | $\beta_{1}X_{1ij} + \beta_{4}X_{4ij}$ |
+| 3    | $\beta_{1}X_{1ij} + \beta_{5}X_{5ij}$ |
+
+
+<!-- \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} \\ -->
+<!-- + \beta_{6}(X_{2ij} \times X_{3ij}) + \beta_{7}(X_{2ij} \times X_{4ij}) + \beta_{8}(X_{2ij} \times X_{5ij}) + \varepsilon_{ij} -->
 
 ### 5. Show how the estimates for the components of $\beta$ can be used to construct the sample means at each measurement time in each treatment group. Compare these estimated means with the sample means that you obtained in question 1. Do they differ? If so, can you suggest why?
 
