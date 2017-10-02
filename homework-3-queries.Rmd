@@ -1,0 +1,81 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Questions for homework 3
+
+> **From question 3**: ...Include the CHISQ option on the MODEL statement...
+
+_Question_: How do we get the Chi-squared stat from `gls` object in R? I can get the F-value and p-value via `anova` (and the F-statistic is very close to the Wald statistic), but how to I calculate the Wald statistic for this test in R?
+
+**Answer**: Use `Anova(..., test-statistic = "Chi-squared")` (or something like that; the important thing is the capitalized function name).
+
+***
+
+> **From question 6**: Now conduct a profile analysis (week, treatment, week $\times$ treatment) on the difference vector D = (Y1-Y0, Y2-Y0, Y3-Y0).
+
+_Question_: Is our model then:
+
+$$
+D_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}(X_{2ij} \times X_{3ij}) \\
++ \beta_{6}(X_{2ij} \times X_{4ij}) + \varepsilon_{ij}
+$$
+And this response vector is _shorter_ than $Y_{i}$ because instead of response at each time point 1, 2, ... _n_ for each individual, we now only have response vector for differences at time points 2, ... _n_.
+
+Where:
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+    X_{2ij} = 
+    \begin{cases}
+      0, & \text{for treatment A} \\
+      1, & \text{for treatment B}
+    \end{cases} \\
+  X_{3ij} = 1 \text{ if measurement is for week 3, 0 otherwise} \\
+  X_{4ij} = 1 \text{ if measurement is for week 4, 0 otherwise} \\
+\end{array}
+$$
+
+**Answer**: Yes, this is correct
+
+***
+
+> **From question 7**: Run an ANCOVA analysis of the outcomes (Y1, Y2, Y3), including the effects of week, treatment, and week $\times$ treatment as well as each subject’s baseline measurement as covariates. Compare both the week, treatment, and week $\times$ treatment effect estimates and standard errors to those from the profile analysis results from Q3.
+
+_Question_: Is this model similar to that of Question 6, where the response vector is shorter (length of $n-1$) than that of $Y_{i}$, but the model of the mean has another covariate:
+
+$$
+Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} + \\
+\beta_{6}(X_{3ij} \times X_{4ij}) + \beta_{7}(X_{3ij} \times X_{5ij}) + \varepsilon_{ij}
+$$
+
+Where:
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+  X_{2ij} = Y_{i1} \\
+  X_{3ij} = 
+    \begin{cases}
+      0, & \text{for treatment A} \\
+      1, & \text{for treatment B}
+    \end{cases} \\
+  X_{4ij} = 1 \text{ if measurement is for week 3, 0 otherwise} \\
+  X_{5ij} = 1 \text{ if measurement is for week 4, 0 otherwise} \\
+\end{array}
+$$
+
+Do we need to do any centering for this model? i.e. instead of: 
+$$
+X_{2ij} = Y_{i1}
+$$
+
+Should we use:
+$$
+X_{2ij} = Y_{i1} - \hat{\mu}_{i1}
+$$
+
+**Answer**: Yes, for $X_{2ij}$, center on the mean for the first measurement period.
