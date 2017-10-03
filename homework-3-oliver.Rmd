@@ -198,7 +198,7 @@ There _is_ evidence of a difference in the pattern of change over time in mean g
 
 ### 4. Provide an interpretation for the estimate of each component of $\beta$.
 
-Interpreting betas is useful to consider the two treatment groups separately. For a subject in treatment A, the expected mean grip strength for the four measurement points are:
+Interpreting betas is useful to consider the two treatment groups separately. For a subject in treatment A, the expected grip strengths for the four measurement points are:
 
 | Week | $E(Y_{ij})$ |
 |:----:|:-----------------------:|
@@ -207,7 +207,7 @@ Interpreting betas is useful to consider the two treatment groups separately. Fo
 | 2    | $\beta_{1} + \beta_{4}$ |
 | 3    | $\beta_{1} + \beta_{5}$ |
 
-For a subject in treatment B, the expected mean grip strength for the four measurement points are:
+For a subject in treatment B, the expected grip strengths for the four measurement points are:
 
 | Week | $E(Y_{ij})$ |
 |:----:|:-----------------------:|
@@ -215,6 +215,8 @@ For a subject in treatment B, the expected mean grip strength for the four measu
 | 1    | $\beta_{1} + \beta_{2} + \beta_{3} + \beta_{6}$ |
 | 2    | $\beta_{1} + \beta_{2} + \beta_{4} + \beta_{7}$ |
 | 3    | $\beta_{1} + \beta_{2} + \beta_{5} + \beta_{8}$ |
+
+And the interpretations for the $\beta$ coefficients are:
 
 + $\beta_{1}$: The expected mean grip strength for subjects in treatment group A at week 0 (baseline)
 + $\beta_{2}$: The difference between expected mean grip strength between subjects in treatment group A and subjects in treatment group B at week 0
@@ -312,7 +314,7 @@ joint.p <- pchisq(q = joint.chisq, df = joint.df, lower.tail = FALSE)
 For this analysis of raw change scores, our model is:
 
 $$
-D_{i} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} \\
+D_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} \\
 + \beta_{5}(X_{2ij} \times X_{3ij}) + \beta_{6}(X_{2ij} \times X_{4ij}) + \varepsilon_{ij}
 $$
 Where:
@@ -339,18 +341,63 @@ In this test of raw change scores, the joint test of group and group $\times$ ti
 
 ### 7. Run an ANCOVA analysis of the outcomes (Y1, Y2, Y3), including the effects of week, treatment, and week $\times$ treatment as well as each subject’s baseline measurement as covariates. Compare both the week, treatment, and week $\times$ treatment effect estimates and standard errors to those from the profile analysis results from Q3. Explain why these results are the same or different from this earlier analysis.
 
+```{r}
+# Get mean values for week 0 (will want to center on these)
+week.0.mean <- mean(grip.data$week.0)
 
+# Create new long data object
+ancova.long <- gather(data = grip.data,
+                      key = "week",
+                      value = "grip",
+                      -subjectID,
+                      -treatment,
+                      -week.0)
 
-**TODO** How to do this?
+# Mean center
+ancova.long$baseline <- ancova.long$week.0 - week.0.mean
 
+# Make sure week column is a factor
+ancova.long$week <- as.factor(ancova.long$week)
 
+# Build gls model
+ancova.model <- gls(grip ~ baseline + treatment + week + treatment * week,
+                    data = ancova.long,
+                    correlation = corSymm(form = ~1|subjectID),
+                    weights = varIdent(form = ~1|week))
+ancova.summary <- summary(ancova.model)
+ancova.anova <- Anova(ancova.model)
+```
 
-This is from the notes (p. 5 of 2017-09-20), but it doesn't look like the right model...
-$Y_i^* = \beta_{1} + \beta_{2}Y_{i1} + \beta_{3}treatment + \varepsilon_{i}^*$
+For this analysis, our model for grip strength is:
 
+$$
+Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} + \\
+\beta_{6}(X_{3ij} \times X_{4ij}) + \beta_{7}(X_{3ij} \times X_{5ij}) + \varepsilon_{ij}
+$$
 
-***
+Where:
+$$
+Y_{i} = (Y_{i2}, Y_{i3}, Y_{i4})'
+$$
 
+And:
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+  X_{2ij} = Y_{i1} - \hat{\mu} \\
+  X_{3ij} = 
+    \begin{cases}
+      0, & \text{for treatment A} \\
+      1, & \text{for treatment B}
+    \end{cases} \\
+  X_{4ij} = 1 \text{ if measurement is for week 3, 0 otherwise} \\
+  X_{5ij} = 1 \text{ if measurement is for week 4, 0 otherwise} \\
+\end{array}
+$$
+
+**TODO** Extract beta estimates and standard errors
+
+**TODO** Explain why they are the same or different
 
 
 ***
