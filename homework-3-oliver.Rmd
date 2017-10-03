@@ -113,7 +113,7 @@ In general, there appears to be an increase in mean grip strength through time. 
 
 ### 2. With baseline (week 0) and the treatment A as the reference group, write out the complete definition of the regression model for the analysis of response profiles for mean grip strength. In this model, let $\beta$ denote the vector of parameters in the model for the means and assume an unstructured variance-covariance structure.
 
-The regression model for the response profile of mean grip strength is:
+The regression model for the response profile of grip strength is:
 $$
 Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} \\
 + \beta_{6}(X_{2ij} \times X_{3ij}) + \beta_{7}(X_{2ij} \times X_{4ij}) + \beta_{8}(X_{2ij} \times X_{5ij}) + \varepsilon_{ij}
@@ -309,11 +309,41 @@ joint.df <- sum(d.model.anova$Df[test.indices])
 joint.p <- pchisq(q = joint.chisq, df = joint.df, lower.tail = FALSE)
 ```
 
+For this analysis of raw change scores, our model is:
+
+$$
+D_{i} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} \\
++ \beta_{5}(X_{2ij} \times X_{3ij}) + \beta_{6}(X_{2ij} \times X_{4ij}) + \varepsilon_{ij}
+$$
+Where:
+
+$$
+D_{i} = (Y_{i2} - Y_{i1}, Y_{i3} - Y_{i1}, Y_{i4} - Y_{i1})'
+$$
+
+And:
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+    X_{2ij} = 
+    \begin{cases}
+      0, & \text{for treatment A} \\
+      1, & \text{for treatment B}
+    \end{cases} \\
+  X_{3ij} = 1 \text{ if measurement is for week 2, 0 otherwise} \\
+  X_{4ij} = 1 \text{ if measurement is for week 3, 0 otherwise} 
+\end{array}
+$$
+
 In this test of raw change scores, the joint test of group and group $\times$ time interaction is equivalent to the group $\times$ time interaction of the full analysis in question 3 (FLW, p. 130). For this analysis based on differences from baseline score, the Wald statistic is identical to that of question 3 (_W^2^_ = `r round(joint.chisq, 3)`, df = `r joint.df`, _p_ = `r round(joint.p, 3)`). We therefore reject the null hypothesis that there is no difference in the pattern of change over time in mean grip strength between the two treatment groups.
 
 ### 7. Run an ANCOVA analysis of the outcomes (Y1, Y2, Y3), including the effects of week, treatment, and week $\times$ treatment as well as each subject’s baseline measurement as covariates. Compare both the week, treatment, and week $\times$ treatment effect estimates and standard errors to those from the profile analysis results from Q3. Explain why these results are the same or different from this earlier analysis.
 
+
+
 **TODO** How to do this?
+
+
 
 This is from the notes (p. 5 of 2017-09-20), but it doesn't look like the right model...
 $Y_i^* = \beta_{1} + \beta_{2}Y_{i1} + \beta_{3}treatment + \varepsilon_{i}^*$
