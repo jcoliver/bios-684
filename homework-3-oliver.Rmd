@@ -218,20 +218,29 @@ For a subject in treatment B, the expected grip strengths for the four measureme
 
 And the interpretations for the $\beta$ coefficients are:
 
-+ $\beta_{1}$: The expected mean grip strength for subjects in treatment group A at week 0 (baseline)
-+ $\beta_{2}$: The difference between expected mean grip strength between subjects in treatment group A and subjects in treatment group B at week 0
-+ $\beta_{3}$: The difference in expected mean grip strength between week 0 and week 1 for subjects in treatment group A
-+ $\beta_{4}$: The difference in expected mean grip strength between week 0 and week 2 for subjects in treatment group A
-+ $\beta_{5}$: The difference in expected mean grip strength between week 0 and week 3 for subjects in treatment group A
-+ $\beta_{6}$: 
-+ $\beta_{7}$: 
-+ $\beta_{8}$: 
-
-**TODO** Interpret the betas (FOR INTERACTION effects)
++ $\beta_{1}$: The expected grip strength for subjects in treatment group A at week 0 (baseline)
++ $\beta_{2}$: The difference between expected grip strength between subjects in treatment group A and subjects in treatment group B at week 0
++ $\beta_{3}$: The difference in expected grip strength between week 0 and week 1 for subjects in treatment group A
++ $\beta_{4}$: The difference in expected grip strength between week 0 and week 2 for subjects in treatment group A
++ $\beta_{5}$: The difference in expected grip strength between week 0 and week 3 for subjects in treatment group A
++ $\beta_{6}$: The difference in the rate of change in expected grip strength between weeks 0 and 1 between a subject in treatment group A and a subject in treatment group B. That is, a subject in treatment group B is expected to have a change in grip strength of $\beta_{3} + \beta_{6}$ between weeks 0 and 1. In contrast, the grip strength a subject in treatment group A is only expected to change by $\beta_{3}$ between weeks 0 and 1. Thus $\beta_{6}$ is the difference in time effect over the first week between subjects in the two treatment groups.
++ $\beta_{7}$: The difference in the rate of change in expected grip strength between weeks 0 and 2 between a subject in treatment group A and a subject in treatment group B.
++ $\beta_{8}$: The difference in the rate of change in expected grip strength between weeks 0 and 3 between a subject in treatment group A and a subject in treatment group B.
 
 ### 5. Show how the estimates for the components of $\beta$ can be used to construct the sample means at each measurement time in each treatment group. Compare these estimated means with the sample means that you obtained in question 1. Do they differ? If so, can you suggest why?
 
-The two tables in the answer to question 4 demonstrate how the $\beta$ values can be combined to calculate the expected values of the grip strength for each treatment/group combination.
+The combinations of $\beta$ for calculating expected values of grip strength:
+
+| Treatment | Week | $E(Y_{ij})$ |
+|:----------|:-----|:-----------------------:|
+| A         | 0    | $\beta_{1}$             |
+|           | 1    | $\beta_{1} + \beta_{3}$ |
+|           | 2    | $\beta_{1} + \beta_{4}$ |
+|           | 3    | $\beta_{1} + \beta_{5}$ |
+| B         | 0    | $\beta_{1} + \beta_{2}$ |
+|           | 1    | $\beta_{1} + \beta_{2} + \beta_{3} + \beta_{6}$ |
+|           | 2    | $\beta_{1} + \beta_{2} + \beta_{4} + \beta_{7}$ |
+|           | 3    | $\beta_{1} + \beta_{2} + \beta_{5} + \beta_{8}$ |
 
 ```{r}
 # Create variables for easier table construction
