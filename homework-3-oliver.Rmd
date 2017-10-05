@@ -203,7 +203,7 @@ There _is_ evidence of a difference in the pattern of change over time in mean g
 
 ### 4. Provide an interpretation for the estimate of each component of $\beta$.
 
-Interpreting betas is useful to consider the two treatment groups separately. For a subject in treatment A, the expected grip strengths for the four measurement points are:
+When interpreting $\beta$s is useful to consider the two treatment groups separately. For a subject in treatment A, the expected grip strengths for the four measurement points are:
 
 | Week | $E(Y_{ij})$ |
 |:----:|:-----------------------:|
@@ -264,6 +264,7 @@ betas <- numeric(8)
 for (b in 1:8) {
   betas[b] <- model.summary$tTable[b, 1]
 }
+betas <- round(betas, 3)
 
 # E(Y) values based on beta coefficients
 mean.estimates$e[1] <- betas[1]
@@ -386,12 +387,19 @@ ancova.model <- gls(grip ~ baseline + treatment + week + treatment * week,
                     weights = varIdent(form = ~1|week))
 ancova.summary <- summary(ancova.model)
 ancova.anova <- Anova(ancova.model)
+
+# Retrieve betas
+ancova.betas <- numeric(nrow(ancova.summary$tTable))
+for (b in 1:length(ancova.betas)) {
+  ancova.betas[b] <- ancova.summary$tTable[b, 1]
+}
+ancova.betas <- round(ancova.betas, 3)
 ```
 
 For this analysis, our model for grip strength is:
 
 $$
-Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} + \\
+Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} +  + \beta_{5}X_{5ij}\\
 \beta_{6}(X_{3ij} \times X_{4ij}) + \beta_{7}(X_{3ij} \times X_{5ij}) + \varepsilon_{ij}
 $$
 
@@ -415,7 +423,6 @@ $$
 \end{array}
 $$
 
-
 The estimates and standard errors for each of the $\beta$ coefficients:
 
 | Component   | Estimate | Standard Error |
@@ -428,8 +435,32 @@ The estimates and standard errors for each of the $\beta$ coefficients:
 | $\beta_{6}$ | `r round(ancova.summary$tTable[6, 1], 3)` | `r round(ancova.summary$tTable[6, 2], 3)` |
 | $\beta_{7}$ | `r round(ancova.summary$tTable[7, 1], 3)` | `r round(ancova.summary$tTable[7, 2], 3)` |
 
-**TODO** Explain why they are the same or different
+Considering the combinations of $\beta$s relative to expectations:
 
+| Treatment | Week | $E(Y_{ij})$ |
+|:----------|:-----|:-----------------------:|
+| A         | 1    | $\beta_{1} + \beta_{2}\Delta$ |
+|           | 2    | $\beta_{1} + \beta_{2}\Delta + \beta_{4}$ |
+|           | 3    | $\beta_{1} + \beta_{2}\Delta + \beta_{5}$ |
+| B         | 1    | $\beta_{1} + \beta_{2}\Delta + \beta_{3}$ |
+|           | 2    | $\beta_{1} + \beta_{2}\Delta + \beta_{3} + \beta_{4} + \beta_{6}$ |
+|           | 3    | $\beta_{1} + \beta_{2}\Delta + \beta_{3} + \beta_{5} + \beta_{7}$ |
+
+where $\Delta = Y_{i1} - \hat{\mu}$.
+
+The results are quite similar to the profile analysis in question 3, although the $\beta$ coefficients have a slightly different interpretation because of the inclusion of the mean-centered baseline grip strength as a covariate. The interpretations for the $\beta$ coefficients are for the _average_ response, not considering an individual's baseline score of grip strength.
+
++ $\beta_{1}$: The expected grip strength for subjects in treatment group A at week 1
++ $\beta_{2}$: Adjustment for individual's baseline score
++ $\beta_{3}$: The difference between expected grip strength between subjects in treatment group A and subjects in treatment group B at week 1
++ $\beta_{4}$: The difference in expected grip strength between week 1 and week 2 for subjects in treatment group A
++ $\beta_{5}$: The difference in expected grip strength between week 1 and week 3 for subjects in treatment group A
++ $\beta_{6}$: The difference in the rate of change in expected grip strength between weeks 1 and 2 between a subject in treatment group A and a subject in treatment group B.
++ $\beta_{7}$: The difference in the rate of change in expected grip strength between weeks 1 and 3 between a subject in treatment group A and a subject in treatment group B.
+
+Because the reference time point for this ANCOVA analysis is week 1, many of the estimated $\beta$ coefficients do not have analogs in the profile analysis of question 3 (the latter used week 0 as the reference time point). However, we can compare $\beta_{1}$ of the ANCOVA (`r ancova.betas[1]`) to $\beta_{1} + \beta_{3}$ of the profile analysis (`r betas[1]` + `r betas[3]` = `r betas[1] + betas[3]`). These are the estimates for the expected grip strength of a subject from treatment A in week 1. Similarly, we can compare the expected grip strength in week 1 for a subject in treatment B in the profile analysis, $\beta_{1} + \beta_{2} + \beta_{3}+ \beta_{6}$ (`r betas[1]` + `r betas[2]` + `r betas[3]` + `r betas[6]` = `r betas[1] + betas[2] + betas[3] + betas[6]`) with the ANCOVA expectation, $\beta_{1} + \beta_{3}$ (`r ancova.betas[1]` + `r ancova.betas[3]` = `r ancova.betas[1] + ancova.betas[3]`). These expectations are close to one another and to the estimated sample means from question 1.
+
+In an omnibus test of the test for an interaction effect, we see a qualitatively similar result as previous analyses. _W^2^_ = `r round(sum(ancova.anova$Chisq[c(2,4)]), 3)`, df = `r sum(ancova.anova$Df[c(2,4)])`, _p_ = `r round(pchisq(q = sum(ancova.anova$Chisq[c(2,4)]), df = sum(ancova.anova$Df[c(2,4)]), lower.tail = FALSE), 3)`). We thus reject the null hypothesis of no interaction effect between time and treatment group.
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-3-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-3-oliver.Rmd).
