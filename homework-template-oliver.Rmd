@@ -11,7 +11,7 @@ output:
 <!-- FIND / REPLACE [XXXX] with homework number -->
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 ```
 
 ***

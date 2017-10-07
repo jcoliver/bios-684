@@ -8,10 +8,10 @@ output:
   latex_engine: xelatex
 ---
 
-<!-- FIND / REPLACE 4 with homework number -->
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
+library("ggplot2")
+library("nlme")
 ```
 
 <!--
@@ -30,9 +30,27 @@ colnames(ozone.long) <- c("subject", "hour", "group", "FEV1")
 ### 1. Descriptive Analyses:
 #### a. Describe key aspects of the longitudinal design and completeness of data.
 
+The design is balanced and the data are complete (all ten individuals assigned to one of two groups have observations for all four of the common sampling points).
+
 #### b. Plot the FEV1 response against hour for each subject exposed to room air (all on the first plot) and for each subject exposed to ozone (all on a second plot). Comment on any patterns in the data or other notable aspects of the data.
 
+```{r plot-over-time, fig.height = 4}
+# Vector for labeling facets
+group_labels <- c("0" = "Room air", "1" = "0.12 ppb ozone")
+
+# Plot responses over time, faceting by group
+time.plot <- ggplot(data = ozone.long, mapping = aes(x = hour, y = FEV1, group = subject)) +
+  geom_line() +
+  facet_grid(~ group, switch = "x", labeller = labeller(group = group_labels))
+time.plot
+
+```
+
+Forced expiratory volume from the first breath (FEV1) appeared to remain relatively constant within subjects in the room air (control) group over the six hour period of the experiment. In contrast, some individuals in the elevated ozone (treatment) group had decreasing FEV1 over the course of the experiment.
+
 #### c. Obtain the mean FEV1 value at each hour of measurement for ozone and room air subjects separately. Plot the means against hour. Comment on the pattern of change in mean FEV1 with hour for ozone and room air subjects.
+
+
 
 ### 2. Fitting a “Maximal” Model and Evaluating Variance-Covariance Structure:
 #### a. Define a reasonable “maximal” mean model for this study. Fit this model using an unstructured variance-covariance matrix. Comment on the variance structure and on the correlation structure. What simplified variance- covariance structure(s) might be reasonable? Justify your answer.
