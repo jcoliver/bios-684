@@ -214,16 +214,20 @@ var.models["har", "aic"] <- har.summary$AIC[1]
 
 #### Using likelihood ratio tests and the AIC criterion as appropriate, identify a model for the variance-covariance structure that provides a good fit to the data. Provide estimates for the parameters used in defining this variance-covariance model. Also provide estimated variance-covariance and correlation matrices.
 
-#TODO: What is the difference between the estimates of parameter and the estimated matrices?
+I start by comparing each model to the unstructured variance-covariance model (_ln(L)_ = `r round(var.models["un", "lnl"], 3)`). In all cases, log-likelihoods are from a REML model. P-values are based on a comparison of $2\Delta ln(L)$ to a $\chi^2$ distribution with degrees of freedom equal to the difference in the number of covariance parameters between the model in question and the unstructured covariance model.
 
-I start by comparing each model to the unstructured variance-covariance model (_ln(L)_ = `r round(var.models["un", "lnl"], 3)`). In all cases, log-likelihoods are from a REML model.
+| Model | # Covariance Parameters | $ln(L)$ | $2\Delta ln(L)$ | $p$ |
+|:------|:-----------------------:|:-------:|:---------------:|:---:|
+| `r var.models["cs", "model.name"]` | `r var.models["cs", "num.params"]` | `r round(var.models["cs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["cs", "lnl"]), 3)` | $`r signif(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["cs", "lnl"]), df = (10 - var.models["cs", "num.params"]), lower.tail = FALSE), 3)`$ |
+| `r var.models["hcs", "model.name"]` | `r var.models["hcs", "num.params"]` | `r round(var.models["hcs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["hcs", "lnl"]), 3)` | $`r round(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["hcs", "lnl"]), df = (10 - var.models["hcs", "num.params"]), lower.tail = FALSE), 3)`$ |
+| `r var.models["ar", "model.name"]` | `r var.models["ar", "num.params"]` | `r round(var.models["ar", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), 3)` | $`r round(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), df = (10 - var.models["ar", "num.params"]), lower.tail = FALSE), 3)`$ |
+| `r var.models["har", "model.name"]` | `r var.models["har", "num.params"]` | `r round(var.models["har", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), 3)` | $`r round(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), df = (10 - var.models["har", "num.params"]), lower.tail = FALSE), 3)`$ |
 
-| Model | # Covariance Parameters | $ln(L)$ | $2\Delta ln(L)$ |
-|:------|:-----------------------:|:-------:|:---------------:|
-| `r var.models["cs", "model.name"]` | `r var.models["cs", "num.params"]` | `r round(var.models["cs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["cs", "lnl"]), 3)` |
-| `r var.models["hcs", "model.name"]` | `r var.models["hcs", "num.params"]` | `r round(var.models["hcs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["hcs", "lnl"]), 3)` |
-| `r var.models["ar", "model.name"]` | `r var.models["ar", "num.params"]` | `r round(var.models["ar", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), 3)` |
-| `r var.models["har", "model.name"]` | `r var.models["har", "num.params"]` | `r round(var.models["har", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), 3)` |
+The two simplest models, the compound symmetric and the first-order autoregressive, both provided a significantly worse fit than the more complex unstructured model (both had $p \leq 0.001$). In contrast, the two models that did not assume constant variance, the heterogeneous compound symmetric and the heterogeneous first-order autoregressive, did not perform significantly worse than the unstructured model. These simpler models offer two potential alternatives to the parameter-rich unstructured covariance model.
+
+##TODO: Do AIC comparison between hcs and har
+##TODO: Provide beta coefficients for the best model
+##TODO: Provide variance-covariance matrix for the best model
 
 ### 3. Analysis of Response Profiles: Fit the usual model for the analysis of mean profiles using room air exposure as the reference level for group and baseline as the reference group for time. Use the variance-covariance structure identified in your answer to question 2b. Based on this model:
 #### a. Test the null hypothesis that the pattern of means over hours is identical (coincides) for the two exposure groups. What do you conclude?
