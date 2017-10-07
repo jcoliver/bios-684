@@ -26,6 +26,7 @@ In the analyses of the data from this study, the response variable of interest w
 ```{r read-data}
 ozone.long <- read.csv(file = "data/ozone0246.csv", header = FALSE)
 colnames(ozone.long) <- c("subject", "hour", "group", "FEV1")
+ozone.long$cat.hour <- as.factor(ozone.long$hour)
 ```
 
 ### 1. Descriptive Analyses:
@@ -46,7 +47,6 @@ time.plot <- ggplot(data = ozone.long, mapping = aes(x = hour, y = FEV1, group =
   xlab(label = "Hour") +
   facet_grid(~ group, switch = "x", labeller = labeller(group = group_labels))
 time.plot
-
 ```
 
 Forced expiratory volume from the first breath (FEV1) appeared to remain relatively constant within subjects in the room air (control) group over the six hour period of the experiment. In contrast, some individuals in the elevated ozone (treatment) group had decreasing FEV1 over the course of the experiment.
@@ -74,14 +74,58 @@ means.plot <- ggplot(data = desc.stats, mapping = aes(x = hour, y = mean, color 
   ylab(label = "FEV1 (mL)/100") +
   xlab(label = "Hour")
 means.plot
-
 ```
 Note error bars show $\pm 1SE$ where $SE = \sigma/\sqrt{n}$.
 
 The mean FEV1 in control subjects appears fairly constant over time (there is a suggestion of a dip between the baseline and 2 hour measurement, followed by an increase between 2 and 4 and 4 and 6 hour timepoints, but unlikely to be significant), while the mean FEV1 appears to decrease in the treatment group. Also of note is that between-subjects variance is the control group appears constant, while between-subject variance in the treatment group appears to increase with time.
 
 ### 2. Fitting a “Maximal” Model and Evaluating Variance-Covariance Structure:
-#### a. Define a reasonable “maximal” mean model for this study. Fit this model using an unstructured variance-covariance matrix. Comment on the variance structure and on the correlation structure. What simplified variance- covariance structure(s) might be reasonable? Justify your answer.
+#### a. Define a reasonable “maximal” mean model for this study. Fit this model using an unstructured variance-covariance matrix. Comment on the variance structure and on the correlation structure. What simplified variance-covariance structure(s) might be reasonable? Justify your answer.
+
+A reasonable "maximal" mean model for this study would treat treat time as categorical:
+$$
+Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} + \\
+\beta_{7}(X_{2ij} \times X_{3ij}) + \beta_{8}(X_{2ij} \times X_{4ij}) + \beta_{9}(X_{2ij} \times X_{5ij}) + \varepsilon_{ij} 
+$$
+Where:
+
+$$
+\begin{array}{l}
+  X_{1ij} = 1 \\
+    X_{2ij} = 
+    \begin{cases}
+      0, & \text{for room air control} \\
+      1, & \text{for ozone treatment}
+    \end{cases} \\
+  X_{3ij} = 1 \text{ if measurement is for hour 2, 0 otherwise} \\
+  X_{4ij} = 1 \text{ if measurement is for hour 4, 0 otherwise} \\
+  X_{5ij} = 1 \text{ if measurement is for hour 6, 0 otherwise}
+\end{array}
+$$
+
+```{r unstructured-model}
+# Build gls unstructured variance model
+maximal.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+                     data = ozone.long,
+                     correlation = corSymm(form = ~1|subject),
+                     weights = varIdent(form = ~1|cat.hour),
+                     method = "REML")
+
+maximal.summary <- summary(maximal.model)
+```
+
+The unstructured variance-covariance matrix has $n(n+1)/2$ parameters ($n$ variances and $n(n-1)/2$ pairwise covariances). In this experiment, this means there are `r nlevels(ozone.long$cat.hour)*(nlevels(ozone.long$cat.hour) + 1)/2` parameters estimated for the variance-covariance matrix. A reasonable simplified variance-covariance structure would be a first-order autoregressive structure. This is justified because the measurements were taken at the same times and there are only a few measurement points, thus the maximal decline in covariance will be an order of 3:
+
+$$
+Cov(Y_{i}) = \sigma^2
+\begin{pmatrix}
+1 & \rho & \rho^2 & \rho^3 \\
+\rho & 1 & \rho & \rho^2 \\
+\rho^2 & \rho & 1 & \rho \\
+\rho^3 & \rho^2 & \rho & 1 \\
+\end{pmatrix}
+
+$$
 
 #### b. Keeping the same maximal mean model, evaluate whether your suggestion(s) for the variance-covariance structure from question 2a as well as the following models for the variance-covariance structure provide an adequate fit to the data compared with an unstructured variance-covariance:
 
