@@ -105,13 +105,25 @@ $$
 
 ```{r unstructured-model}
 # Build gls unstructured variance model
-maximal.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+unstructured.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
                      data = ozone.long,
                      correlation = corSymm(form = ~1|subject),
                      weights = varIdent(form = ~1|cat.hour),
                      method = "REML")
 
-maximal.summary <- summary(maximal.model)
+unstructured.summary <- summary(unstructured.model)
+
+# Build storage object for subsequent model comparison
+var.models <- data.frame(model.name = c("Unstructured", "Compound Symmetric", "Heterogeneous Compound Symmetric", 
+                                         "First-order Autoregressive", "Heterogeneous first-order Autoregressive"),
+                         model.code = c("un", "cs", "hcs", "ar", "har"),
+                         num.params = NA,
+                         lnl = NA,
+                         aic = NA)
+rownames(var.models) <- var.models$model.code
+var.models["un", "num.params"] <- (nlevels(ozone.long$cat.hour)*(nlevels(ozone.long$cat.hour) + 1)) / 2
+var.models["un", "lnl"] <- unstructured.summary$logLik[1]
+var.models["un", "aic"] <- unstructured.summary$AIC[1]
 ```
 
 The unstructured variance-covariance matrix has $n(n+1)/2$ parameters ($n$ variances and $n(n-1)/2$ pairwise covariances). In this experiment, this means there are `r nlevels(ozone.long$cat.hour)*(nlevels(ozone.long$cat.hour) + 1)/2` parameters estimated for the variance-covariance matrix. A reasonable simplified variance-covariance structure would be a first-order autoregressive structure. This is justified because the measurements were taken at the same times and there are only a few measurement points, thus the maximal decline in covariance will be an order of 3:
@@ -124,8 +136,22 @@ Cov(Y_{i}) = \sigma^2
 \rho^2 & \rho & 1 & \rho \\
 \rho^3 & \rho^2 & \rho & 1 \\
 \end{pmatrix}
+$$
+
+This has the benefit of only 2 estimated parameters ($\sigma$ and $\rho$).
+
+However, the variance, at least in the treatment group, does _not_ appear to be constant over time (it seems to increase), so another appropriate variance-covariance model, heterogeneous first-order auto-regressive, would relax the assumption of constant variance:
 
 $$
+Cov(Y_{i}) = 
+\begin{pmatrix}
+\sigma_{1}^2 & \rho & \rho^2 & \rho^3 \\
+\rho & \sigma_{2}^2 & \rho & \rho^2 \\
+\rho^2 & \rho & \sigma_{3}^2 & \rho \\
+\rho^3 & \rho^2 & \rho & \sigma_{4}^2 \\
+\end{pmatrix}
+$$
+This model has `r nlevels(ozone.long$cat.hour) + 1` ($n + 1$) parameters.
 
 #### b. Keeping the same maximal mean model, evaluate whether your suggestion(s) for the variance-covariance structure from question 2a as well as the following models for the variance-covariance structure provide an adequate fit to the data compared with an unstructured variance-covariance:
 
@@ -134,7 +160,70 @@ $$
 3. 1^st^-order autoregressive
 4. heterogeneous 1^st^-order autoregressive (hint use: `type=arh(1)` in `proc mixed`)
 
+```{r compound-symmetry}
+cs.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+                     data = ozone.long,
+                     correlation = corCompSymm(form = ~1|subject),
+                     weights = varIdent(form = ~1),
+                     method = "REML")
+
+cs.summary <- summary(cs.model)
+var.models["cs", "num.params"] <- 2
+var.models["cs", "lnl"] <- cs.summary$logLik[1]
+var.models["cs", "aic"] <- cs.summary$AIC[1]
+```
+
+```{r het-compound-symmetry}
+hcs.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+                     data = ozone.long,
+                     correlation = corCompSymm(form = ~1|subject),
+                     weights = varIdent(form = ~1|cat.hour),
+                     method = "REML")
+
+hcs.summary <- summary(hcs.model)
+var.models["hcs", "num.params"] <- nlevels(ozone.long$cat.hour) + 1
+var.models["hcs", "lnl"] <- hcs.summary$logLik[1]
+var.models["hcs", "aic"] <- hcs.summary$AIC[1]
+```
+
+```{r autoregressive}
+ar.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+                     data = ozone.long,
+                     correlation = corAR1(form = ~1|subject),
+                     weights = varIdent(form = ~1),
+                     method = "REML")
+
+ar.summary <- summary(ar.model)
+var.models["ar", "num.params"] <- 2
+var.models["ar", "lnl"] <- ar.summary$logLik[1]
+var.models["ar", "aic"] <- ar.summary$AIC[1]
+```
+
+```{r het-autoregressive}
+har.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
+                     data = ozone.long,
+                     correlation = corAR1(form = ~1|subject),
+                     weights = varIdent(form = ~1|cat.hour),
+                     method = "REML")
+
+har.summary <- summary(har.model)
+var.models["har", "num.params"] <- nlevels(ozone.long$cat.hour) + 1
+var.models["har", "lnl"] <- har.summary$logLik[1]
+var.models["har", "aic"] <- har.summary$AIC[1]
+```
+
 #### Using likelihood ratio tests and the AIC criterion as appropriate, identify a model for the variance-covariance structure that provides a good fit to the data. Provide estimates for the parameters used in defining this variance-covariance model. Also provide estimated variance-covariance and correlation matrices.
+
+#TODO: What is the difference between the estimates of parameter and the estimated matrices?
+
+I start by comparing each model to the unstructured variance-covariance model (_ln(L)_ = `r round(var.models["un", "lnl"], 3)`). In all cases, log-likelihoods are from a REML model.
+
+| Model | # Covariance Parameters | $ln(L)$ | $2\Delta ln(L)$ |
+|:------|:-----------------------:|:-------:|:---------------:|
+| `r var.models["cs", "model.name"]` | `r var.models["cs", "num.params"]` | `r round(var.models["cs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["cs", "lnl"]), 3)` |
+| `r var.models["hcs", "model.name"]` | `r var.models["hcs", "num.params"]` | `r round(var.models["hcs", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["hcs", "lnl"]), 3)` |
+| `r var.models["ar", "model.name"]` | `r var.models["ar", "num.params"]` | `r round(var.models["ar", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), 3)` |
+| `r var.models["har", "model.name"]` | `r var.models["har", "num.params"]` | `r round(var.models["har", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), 3)` |
 
 ### 3. Analysis of Response Profiles: Fit the usual model for the analysis of mean profiles using room air exposure as the reference level for group and baseline as the reference group for time. Use the variance-covariance structure identified in your answer to question 2b. Based on this model:
 #### a. Test the null hypothesis that the pattern of means over hours is identical (coincides) for the two exposure groups. What do you conclude?
