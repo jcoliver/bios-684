@@ -223,11 +223,44 @@ I start by comparing each model to the unstructured variance-covariance model (_
 | `r var.models["ar", "model.name"]` | `r var.models["ar", "num.params"]` | `r round(var.models["ar", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), 3)` | $`r round(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["ar", "lnl"]), df = (10 - var.models["ar", "num.params"]), lower.tail = FALSE), 3)`$ |
 | `r var.models["har", "model.name"]` | `r var.models["har", "num.params"]` | `r round(var.models["har", "lnl"], 3)` | `r round(2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), 3)` | $`r round(pchisq(q = 2 * (var.models["un", "lnl"] - var.models["har", "lnl"]), df = (10 - var.models["har", "num.params"]), lower.tail = FALSE), 3)`$ |
 
-The two simplest models, the compound symmetric and the first-order autoregressive, both provided a significantly worse fit than the more complex unstructured model (both had $p \leq 0.001$). In contrast, the two models that did not assume constant variance, the heterogeneous compound symmetric and the heterogeneous first-order autoregressive, did not perform significantly worse than the unstructured model. These simpler models offer two potential alternatives to the parameter-rich unstructured covariance model.
+The two simplest models, the compound symmetric and the first-order autoregressive, both provided a significantly worse fit than the more complex unstructured model (both had $p \leq 0.001$). In contrast, the two models that did not assume constant variance, the heterogeneous compound symmetric and the heterogeneous first-order autoregressive, did not perform significantly worse than the unstructured model. These simpler models offer two potential alternatives to the parameter-rich unstructured covariance model. To compare these models, we need to use AIC rather than a likelihood ratio test because they are not nested models (one is not a special case of the other). 
 
-##TODO: Do AIC comparison between hcs and har
-##TODO: Provide beta coefficients for the best model
-##TODO: Provide variance-covariance matrix for the best model
+| Model | AIC |
+|:------|:---:|
+| `r var.models["hcs", "model.name"]` | `r round(var.models["hcs", "aic"], 3)` |
+| `r var.models["har", "model.name"]` | `r round(var.models["har", "aic"], 3)` |
+
+Because the heterogeneous first-order autoregressive model has a lower AIC score ($\Delta AIC = `r round(var.models["hcs", "aic"] - var.models["har", "aic"], 3)`$), that is the model that provides a sufficient fit to the model without over-parameterizing the variance-covariance structure.
+
+The $\beta$ coefficients estimated under the heterogeneous first-order autoregressive variance-covariance model are:
+
+| Coefficient | Estimate | Description |
+|:-----------:|:--------:|:------------|
+| $\beta_{1}$ | `r round(har.summary$coefficients[[1]], 3)` | Intercept | 
+| $\beta_{2}$ | `r round(har.summary$coefficients[[2]], 3)` | Group | 
+| $\beta_{3}$ | `r round(har.summary$coefficients[[3]], 3)` | Hour 2 | 
+| $\beta_{4}$ | `r round(har.summary$coefficients[[4]], 3)` | Hour 4 | 
+| $\beta_{5}$ | `r round(har.summary$coefficients[[5]], 3)` | Hour 6 | 
+| $\beta_{6}$ | `r round(har.summary$coefficients[[6]], 3)` | Group $\times$ hour 2 | 
+| $\beta_{7}$ | `r round(har.summary$coefficients[[7]], 3)` | Group $\times$ hour 4 | 
+| $\beta_{8}$ | `r round(har.summary$coefficients[[8]], 3)` | Group $\times$ hour 6 | 
+
+And the variance-covariance matrix for this model is:
+
+```{r har-var-covar}
+har.covar <- getVarCov(obj = har.model)
+har.covar <- round(har.covar, 3)
+```
+
+$$
+Cov(Y_{i}) = 
+\begin{pmatrix}
+`r har.covar[1, 1]` & `r har.covar[1, 2]` & `r har.covar[1, 3]` & `r har.covar[1, 4]` \\
+`r har.covar[2, 1]` & `r har.covar[2, 2]` & `r har.covar[2, 3]` & `r har.covar[2, 4]` \\
+`r har.covar[3, 1]` & `r har.covar[3, 2]` & `r har.covar[3, 3]` & `r har.covar[3, 4]` \\
+`r har.covar[4, 1]` & `r har.covar[4, 2]` & `r har.covar[4, 3]` & `r har.covar[4, 4]` \\
+\end{pmatrix}
+$$
 
 ### 3. Analysis of Response Profiles: Fit the usual model for the analysis of mean profiles using room air exposure as the reference level for group and baseline as the reference group for time. Use the variance-covariance structure identified in your answer to question 2b. Based on this model:
 #### a. Test the null hypothesis that the pattern of means over hours is identical (coincides) for the two exposure groups. What do you conclude?
