@@ -299,13 +299,37 @@ In a test to see if the response pattern coincides for the two exposure groups, 
 In this case we are testing only the coefficients for the group $\times$ time interactions, or $H_{0}: \beta_{6} = \beta_{7} = \beta_{8} = 0$. For this test, _W^2^_ = `r parallel.chisq` and there are `r parallel.df` degrees of freedom. In this case, we _`r parallel.text`_ reject the null hypothesis of parallel mean response profiles of the two groups (p = `r round(parallel.p, 3)`).
 
 ### 4. Fitting a Linear Model in Time: Fit a model that includes hour as a continuous variable, group and their interaction. Use the model for the variance-covariance structure that you identified in question 2b.
+
+```{r continuous-time}
+cont.time.model <- gls(FEV1 ~ group + hour + group * hour,
+                    data = ozone.long,
+                    correlation = corAR1(form = ~1|subject),
+                    weights = varIdent(form = ~1|hour),
+                    method = "ML")
+cont.time.summary <- summary(cont.time.model)
+```
+
+Using the heterogeneous first-order autoregressive variance-covariance structure, the response for the mean is:
+
+$$
+Y_{ij} = \beta_{1} + \beta_{2}Group_{i} + \beta_{3}t_{ij} + \beta_{4}(Group_{i} \times t_{ij}) + \varepsilon_{ij}
+$$
+
 #### a. What is the estimated rate of change in mean response for the room air group?
+
+The estimated rate of change in the mean response for the room air group is $\beta_{3}$ = `r round(cont.time.summary$coefficients[[3]], 3)`. That is, for every hour in the experiment, we expect the FEV1 to decrease by `r abs(round(cont.time.summary$coefficients[[3]], 3))` hundredths of a mL in the control group.
 
 #### b. What is the estimated rate of change in mean response for the ozone group?
 
+The estimated rate of change in mean response for the ozone group is $\beta_{3} + \beta_{4}$ = `r round((cont.time.summary$coefficients[[3]] + cont.time.summary$coefficients[[4]]), 3)`. That is, for every hour in the experiment, we expect the FEV1 to decrease by `r abs(round((cont.time.summary$coefficients[[3]] + cont.time.summary$coefficients[[4]]), 3))` hundredths of a mL in the control group.
+
 #### c. Test the hypothesis that the rates of change in mean response are identical in the two groups. What do you conclude?
 
+The rates of change in the mean response are not identical in the two groups. We reject this hypothesis ($H_{0}: \beta_{4} = 0$) at p = `r round(cont.time.summary$tTable[4, 4], 3)`.
+
 #### d. What is the estimated difference in rate of mean change between the two groups? By calculating a 95% confidence interval for this difference, identify what are plausible values for the underlying true difference.
+
+
 
 ### 5. Evaluating the Fit of a Linear Model in Time: Does a model with a linear trend in hour for each exposure group adequately describe the pattern of change in the two groups? Justify your answer with appropriate statistical analysis. (Hint: compare it with quadratic model and statured model)
 
