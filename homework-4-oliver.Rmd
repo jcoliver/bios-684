@@ -307,6 +307,7 @@ cont.time.model <- gls(FEV1 ~ group + hour + group * hour,
                     weights = varIdent(form = ~1|hour),
                     method = "ML")
 cont.time.summary <- summary(cont.time.model)
+coeffs.95CI <- round(confint(object = cont.time.model), 3)
 ```
 
 Using the heterogeneous first-order autoregressive variance-covariance structure, the response for the mean is:
@@ -329,9 +330,12 @@ The rates of change in the mean response are not identical in the two groups. We
 
 #### d. What is the estimated difference in rate of mean change between the two groups? By calculating a 95% confidence interval for this difference, identify what are plausible values for the underlying true difference.
 
-
+The estimated difference in the rate of mean change between the two groups is $\beta_{4}$ = `r round(cont.time.summary$coefficients[[4]], 3)`. The 95% confidence interval for this estimate is [`r coeffs.95CI[4, 1]`, `r coeffs.95CI[4, 2]`].
 
 ### 5. Evaluating the Fit of a Linear Model in Time: Does a model with a linear trend in hour for each exposure group adequately describe the pattern of change in the two groups? Justify your answer with appropriate statistical analysis. (Hint: compare it with quadratic model and statured model)
+
+#TODO: run quatratic model
+#TODO: Do model comparisons...
 
 ### 6. Summarizing the Key Results and Conclusions: Write a brief structured abstract (maximum 200 words) summarizing the objective, methods, results and conclusions that might be drawn concerning exposure differences in patterns of pulmonary function over time.
 
