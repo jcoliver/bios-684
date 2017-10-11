@@ -109,6 +109,18 @@ $$
 \end{array}
 $$
 
+And the covariance matrix is unstructured:
+$$
+Cov(Y_{i}) = 
+\begin{pmatrix}
+\sigma_{0}^2 & \sigma_{02} & \sigma_{04} & \sigma_{06} \\
+\sigma_{20} & \sigma_{2}^2 & \sigma_{24} & \sigma_{26} \\
+\sigma_{40} & \sigma_{42} & \sigma_{4}^2 & \sigma_{46} \\
+\sigma_{60} & \sigma_{62} & \sigma_{64} & \sigma_{6}^2 \\
+\end{pmatrix}
+$$
+Note subscripts indicate hour of measurement and $\sigma_{jk} = \sigma_{kj}$.
+
 ```{r unstructured-model}
 # Build gls unstructured variance model
 unstructured.model <- gls(FEV1 ~ group + cat.hour + group * cat.hour,
@@ -295,7 +307,7 @@ if (parallel.p >= 0.05) {
 
 #### a. Test the null hypothesis that the pattern of means over hours is identical (coincides) for the two exposure groups. What do you conclude?
 
-In a test to see if the response pattern coincides for the two exposure groups, we perform a joint test of the effect of group and group $\times$ time interaction. In the model, using maximum likelihood estimation (not REML), I tested $H_{0}: \beta_{2} = \beta_{6} = \beta_{7} = \beta_{8} = 0$. The test statistic _W^2^_ = `r coincide.chisq`. With `r coincide.df` degrees of freedom, this indicates we _`r coincide.text`_ reject the hypothesis that the responses of the two groups coincide (p = `r coincide.p`).
+In a test to see if the response pattern coincides for the two exposure groups, we perform a joint test of the effect of group and group $\times$ time interaction. In the model, using maximum likelihood estimation (not REML), I tested $H_{0}: \beta_{2} = \beta_{6} = \beta_{7} = \beta_{8} = 0$. The test statistic _W^2^_ = `r coincide.chisq`. With `r coincide.df` degrees of freedom, this indicates we _`r coincide.text`_ reject the hypothesis that the responses of the two groups coincide (p = `r coincide.p`). Note this model uses the heterogeneous first-order autoregressive variance-covariance structure identified in question 2b.
 
 #### b. Test the null hypothesis that the mean response profiles of the two groups are parallel. What do you conclude?
 
@@ -329,15 +341,21 @@ The estimated rate of change in mean response for subjects in the ozone group is
 
 #### c. Test the hypothesis that the rates of change in mean response are identical in the two groups. What do you conclude?
 
-The rates of change in the mean response are not identical in the two groups. We reject this hypothesis ($H_{0}: \beta_{4} = 0$) at p = `r round(linear.summary$tTable[4, 4], 3)`.
+To test for an identical mean rate of change between the two groups, we compare a full model that includes an interaction term:
 
-#### d. What is the estimated difference in rate of mean change between the two groups? By calculating a 95% confidence interval for this difference, identify what are plausible values for the underlying true difference.
+$$
+\text{Full model: } Y_{ij} = \beta_{1} + \beta_{2}Group_{i} + \beta_{3}t_{ij} + \beta_{4}(Group_{i} \times t_{ij}) + \varepsilon_{ij}
+$$
 
-The estimated difference in the rate of mean change between the two groups is $\beta_{4}$ = `r round(linear.summary$coefficients[[4]], 3)`. The 95% confidence interval for this estimate is [`r coeffs.95CI[4, 1]`, `r coeffs.95CI[4, 2]`].
+to a reduced model lacking the interaction term:
 
-### 5. Evaluating the Fit of a Linear Model in Time: Does a model with a linear trend in hour for each exposure group adequately describe the pattern of change in the two groups? Justify your answer with appropriate statistical analysis. (Hint: compare it with quadratic model and statured model)
+$$
+\text{Reduced model: } Y_{ij} = \beta_{1} + \beta_{2}Group_{i} + \beta_{3}t_{ij} + \varepsilon_{ij}
+$$
 
-```{r continuous-time-comparisons}
+Which provides an explicit test of the hypothesis $H_{0}: \beta_{4} = 0$.
+
+```{r interaction-test}
 # Linear model with ML instead of REML
 linear.ml.model <- gls(FEV1 ~ group + hour + group * hour,
                     data = ozone.long,
@@ -346,6 +364,42 @@ linear.ml.model <- gls(FEV1 ~ group + hour + group * hour,
                     method = "ML")
 linear.ml.summary <- summary(linear.ml.model)
 
+reduced.ml.model <- gls(FEV1 ~ group + hour,
+                    data = ozone.long,
+                    correlation = corAR1(form = ~1|subject),
+                    weights = varIdent(form = ~1|hour),
+                    method = "ML")
+reduced.ml.summary <- summary(reduced.ml.model)
+
+linear.reduced.lrt <- 2*(linear.ml.summary$logLik[1] - reduced.ml.summary$logLik[1])
+linear.reduced.p <- pchisq(q = linear.reduced.lrt, df = 1, lower.tail = FALSE)
+```
+
+In comparing these models, we use the maximum likelihood estimates of the $\beta$ coefficients (not REML) and teh hetergeneous first-order autoregressive variance-covariance structure: 
+
+| Model    | -ln(L)                                      |
+|:---------|:-------------------------------------------:|
+| Full     | `r -round(linear.ml.summary$logLik[1], 3)`  |
+| Reduced  | `r -round(reduced.ml.summary$logLik[1], 3)` |
+
+Comparing these two models, the statistic for the likelihood ratio test is:
+
+$$
+2\Delta ln(L)
+= 2(l_{full} - l_{red}) \\
+= 2(`r round(linear.ml.summary$logLik[1], 3)` + `r -round(reduced.ml.summary$logLik[1], 3)`) \\
+= `r round(linear.reduced.lrt, 3)`
+$$
+
+And there is one degree of freedom, so we reject the hypothesis ($H_{0}: \beta_{4} = 0$) at $p = `r round(linear.reduced.p, 3)`$. The rates of change in the mean response are _not_ identical in the two groups.
+
+#### d. What is the estimated difference in rate of mean change between the two groups? By calculating a 95% confidence interval for this difference, identify what are plausible values for the underlying true difference.
+
+The estimated difference in the rate of mean change between the two groups is $\beta_{4}$ = `r round(linear.summary$coefficients[[4]], 3)`. The 95% confidence interval for this estimate is [`r coeffs.95CI[4, 1]`, `r coeffs.95CI[4, 2]`]. Note zero is _not_ included in the 95% confidence interval.
+
+### 5. Evaluating the Fit of a Linear Model in Time: Does a model with a linear trend in hour for each exposure group adequately describe the pattern of change in the two groups? Justify your answer with appropriate statistical analysis. (Hint: compare it with quadratic model and saturated model)
+
+```{r continuous-time-comparisons}
 # Center time before analysis
 ozone.long$hour.centered <- ozone.long$hour - mean(as.numeric(levels(ozone.long$cat.hour)))
 ozone.long$hour.c.sq <- ozone.long$hour.centered^2
@@ -372,10 +426,9 @@ Y_{ij} = \beta_{1} + \beta_{2}Group_{i} + \beta_{3}t_{ij} + \beta_{4}t_{ij}^2 + 
 $$
 Where $t_{ij}$ is centered on the mean.
 
-In a comparison of linear and quadradic models, the quadratic model _does not_ result in a significant improvement in log-likelihood score ($2\Delta lnL = `r round(linear.v.quad.lnl, 3)`$, df = `r linear.v.quad.df`, $p = `r linear.v.quad.p`$). Therefore, in this comparison, the linear model is sufficient to describe the change in FEV1 over time when compared with a quadratic model.
+In a comparison of linear and quadradic models, the quadratic model _does not_ result in a significant improvement in log-likelihood score ($2\Delta ln(L) = `r round(linear.v.quad.lnl, 3)`$, df = `r linear.v.quad.df`, $p = `r linear.v.quad.p`$). Therefore, in this comparison, the linear model is sufficient to describe the change in FEV1 over time when compared with a quadratic model.
 
 Recall the saturated model, where time is a categorical variable:
-
 $$
 Y_{ij} = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + \beta_{4}X_{4ij} + \beta_{5}X_{5ij} + \\
 \beta_{7}(X_{2ij} \times X_{3ij}) + \beta_{8}(X_{2ij} \times X_{4ij}) + \beta_{9}(X_{2ij} \times X_{5ij}) + \varepsilon_{ij} 
@@ -397,7 +450,7 @@ $$
 \end{array}
 $$
 
-To compare this saturated model to the simpler linear model, I used AIC, as the simple model is not nested within the saturated model. While the saturated model had a slightly better maximum likelihood score ($-lnL = `r -round(har.ml.summary$logLik[1], 3)`$) than the linear model ($-lnL = `r -round(linear.ml.summary$logLik[1], 3)`$), the linear model had a substantially better AIC score ($\Delta AIC = `r linear.v.sat.aic`$) than the saturated model (largely due to the difference in the number of estimated parameters between the two models). Thus, the simpler linear model remains sufficient for explaining the response in both groups over time.
+To compare this saturated model to the simpler linear model, I used AIC, as the simple model is not nested within the saturated model. While the saturated model had a slightly better maximum likelihood score ($-ln(L) = `r -round(har.ml.summary$logLik[1], 3)`$) than the linear model ($-ln(L) = `r -round(linear.ml.summary$logLik[1], 3)`$), the linear model had a substantially better AIC score ($\Delta AIC = `r linear.v.sat.aic`$) than the saturated model (largely due to the difference in the number of estimated parameters between the two models). Thus, the simpler linear model remains sufficient for explaining the response in both groups over time.
 
 ### 6. Summarizing the Key Results and Conclusions: Write a brief structured abstract (maximum 200 words) summarizing the objective, methods, results and conclusions that might be drawn concerning exposure differences in patterns of pulmonary function over time.
 
