@@ -10,7 +10,7 @@ output:
 
 <!-- FIND / REPLACE [XXXX] with homework number -->
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, fig.height = 4}
 knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 ```
 
