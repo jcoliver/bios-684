@@ -1,0 +1,56 @@
+---
+title: "Homework 5"
+subtitle: "BIOS 684"
+author: "Jeff Oliver"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+  latex_engine: xelatex
+---
+
+```{r setup, include=FALSE, fig.height = 4}
+knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
+```
+
+<!--
+To review concepts of linear mixed effects models
+Instructions:
+1) For each question requiring data analysis, support your conclusions by including only the relevant SAS output in your answer.
+2) Include your SAS program as an appendix to your solutions.
+
+Analysis of Data from Dental Growth Study
+In a study of dental growth, measurements of the distance (mm) from the center of the pituitary gland to the pteryomaxillary fissure were obtained on 11 girls and 16 boys at ages 8, 10, 12 and 14 years (Potthoff and Roy, 1964). The data are in the file “dental.txt” on the course web page. Each row of the data set contains the following six variables: subject ID, gender (“F” or “M”), and the measurements at ages 8, 10, 12 and 14 years, respectively.
+
+Note that in HW2 was based on this study, but you analyzed data only from the girls. In this homework please analyze ALL the data.
+-->
+
+### 1. Descriptive Analysis
+#### a. Describe key features of the study’s design and the completeness of data.
+#### b. Create two plots, one for each gender, showing the trajectories of each subject’s distance over time. Comment on the notable features in these trajectories.
+#### c. Create a single plot of the distance over time for each gender. Comment on the notable features in this plot.
+
+### 2. Two-Stage Analysis
+#### First Stage: Using PROC REG (or PROC GLM), obtain estimates of the intercept and slope from the linear regression of distance on (continuous) age for each subject separately. Note: you do not need to provide the SAS output for each subject (this can be suppressed in your SAS code by using the NOPRINT option).
+##### i) State the model being fitted for each subject including any distributional assumptions.
+##### ii) Calculate the means of the estimated intercepts and the estimated slopes for each of the two genders.
+#### Second Stage:
+##### i) Using the intercepts obtained in question 2a as the outcome variable, fit a regression model to compare the mean intercepts for each gender. State the model being fitted including any distributional assumptions (for terms in the model which are also parts of the model in question 2a, use the same notation). Obtain an estimate for the difference in mean intercept between genders together with the standard error for the difference. What do you conclude about the difference in mean intercept?
+##### ii) Repeat i) but using the slopes obtained in question 2a as the outcome variable. What do you conclude about the difference in mean slope?
+##### iii) Obtain and interpret the standard deviation of the residuals (“errors”) from the model in part ii).
+
+### (Joint) Mixed Effects Analysis. 
+#### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
+#### a. State the model being fitted including any distributional assumptions. As much as possible, use the same notation as you used in question 2.
+#### b. Compare the within-subject “error” variance to the between subject variance of the intercepts. What do you conclude?
+#### c. Obtain estimates for the differences in mean intercept and mean slope by gender and their associated standard errors. What do you conclude about these differences?
+#### d. Compare the estimates and their standard errors in question 3c to those obtained in question 2. What do you notice? Will this occur in all randomized trials with two groups and longitudinal measurements? Justify your answer.
+#### e. Obtain and provide an interpretation for the correlation of the intercept and slope among subjects.
+#### f. From your model, conditional upon gender, obtain the standard deviation of the slopes among subjects. Provide a clinically meaningful interpretation of this standard deviation.
+#### g. Obtain the marginal correlation matrix for the vector of responses, Yi = (Yi1, Yi2, Yi3, Yi4), for the subject with ID=1. Considering your findings in response to question 3b, why are the correlations relatively large but not extremely strong?
+#### h. The data for this study could also be analyzed using the repeated measures approach discussed extensively earlier in the course.
+##### i) Define a repeated measures model with an unstructured variance- covariance matrix and the same form of fixed effects model as in question 3a which could be used.
+##### ii) Fit this model and use the AIC statistic to assess the goodness of fit of the variance-covariance structure induced by the mixed effects model. What do you conclude?
+
+***
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-5-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-5-oliver.Rmd).
