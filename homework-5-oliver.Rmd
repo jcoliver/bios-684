@@ -10,6 +10,8 @@ output:
 
 ```{r setup, include=FALSE, fig.height = 4}
 knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
+library("ggplot2")
+library("tidyr")
 ```
 
 <!--
@@ -24,9 +26,47 @@ In a study of dental growth, measurements of the distance (mm) from the center o
 Note that in HW2 was based on this study, but you analyzed data only from the girls. In this homework please analyze ALL the data.
 -->
 
+```{r data}
+# Read in data
+dental.data <- read.csv(file = "data/dental.csv", header = FALSE)
+
+# Sampling vector for later use
+years <- c(8, 10, 12, 14)
+years.chr <- c("08", "10", "12", "14")
+
+# Add column names
+colnames(dental.data) <- c("ID", "gender", paste0("y.", years.chr))
+
+# Create a long version, too
+dental.long <- gather(data = dental.data,
+                      key = "year.cat",
+                      value = "distance",
+                      -gender, -ID)
+
+# Make a continuous year column
+dental.long$year <- as.numeric(gsub(pattern = "y.", replacement = "", x = dental.long$year.cat))
+
+# Make sure we have a categorical year
+dental.long$year.cat <- as.factor(dental.long$year)
+```
+
 ### 1. Descriptive Analysis
 #### a. Describe key features of the study’s design and the completeness of data.
+
+The study has a total of `r nrows(dental.data)` subjects, `r sum(dental.data$gender == "F")` girls and `r sum(dental.data$gender == "M")` boys. All subjects were sampled at each of four time points (). 
+
+# TODO: Balanced?
+# TODO: Complete?
+
 #### b. Create two plots, one for each gender, showing the trajectories of each subject’s distance over time. Comment on the notable features in these trajectories.
+```{r spaghetti-plot}
+trajectories <- ggplot(data = dental.long, mapping = aes(x = year, y = distance, group = ID)) +
+  geom_line() + 
+  facet_grid(~ gender)
+
+trajectories
+```
+
 #### c. Create a single plot of the distance over time for each gender. Comment on the notable features in this plot.
 
 ### 2. Two-Stage Analysis
