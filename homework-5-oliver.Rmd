@@ -12,6 +12,7 @@ output:
 knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("ggplot2")
 library("tidyr")
+library("dplyr")
 ```
 
 <!--
@@ -53,10 +54,7 @@ dental.long$year.cat <- as.factor(dental.long$year)
 ### 1. Descriptive Analysis
 #### a. Describe key features of the study’s design and the completeness of data.
 
-The study has a total of `r nrows(dental.data)` subjects, `r sum(dental.data$gender == "F")` girls and `r sum(dental.data$gender == "M")` boys. All subjects were sampled at each of four time points (). 
-
-# TODO: Balanced?
-# TODO: Complete?
+The study has a total of `r nrows(dental.data)` subjects, `r sum(dental.data$gender == "F")` girls and `r sum(dental.data$gender == "M")` boys. All subjects were sampled at each of four time points (8, 10, 12, and 14 years), thus the experimental design is balanced and the data are complete.
 
 #### b. Create two plots, one for each gender, showing the trajectories of each subject’s distance over time. Comment on the notable features in these trajectories.
 ```{r spaghetti-plot}
@@ -68,6 +66,30 @@ trajectories
 ```
 
 #### c. Create a single plot of the distance over time for each gender. Comment on the notable features in this plot.
+```{r group-means}
+# Calculate means and standard deviation for each sampling point and each gender
+dental.means <- dental.long %>%
+  group_by(gender, year.cat) %>%
+  summarize(mean.distance = mean(distance),
+            sd.distance = sd(distance))
+
+# Calculate standard errors for the two groups
+dental.means$se.distance <- NA
+dental.means$se.distance[dental.means$gender == "F"] <- dental.means$sd.distance[dental.means$gender == "F"] / sqrt(sum(dental.data$gender == "F"))
+dental.means$se.distance[dental.means$gender == "M"] <- dental.means$sd.distance[dental.means$gender == "M"] / sqrt(sum(dental.data$gender == "M"))
+
+# Plot the means
+group.trajectories <- ggplot(data = dental.means, mapping = aes(x = year.cat, y = mean.distance, color = gender, group = gender)) +
+  geom_point() + 
+  geom_line() +
+  geom_errorbar(data = dental.means, mapping = aes(x = year.cat, ymin = (mean.distance - se.distance), ymax = (mean.distance + se.distance)), width = 0.2) +
+  scale_color_manual(name = "Gender", values = c("cadetblue", "darkred"), labels = c("F" = "Female", "M" = "Male")) +
+  ylab(label = "Distance (mm)") + 
+  xlab(label = "Year")
+
+group.trajectories
+```
+In this plot of the means for each gender, both female and male subjects show an increase of distance over time. There appears, if 8 years is considered the baseline for this experiment, to be a different intercept between the two groups. That is, at the age of eigth, males appear to have a larger distance than females at the same age. The rate of change between the two groups migth be different, with a slightly higher rate of growth in males, but it is difficult to tell from this graph. There do not appear to be distinct differences in variance through time or between groups.
 
 ### 2. Two-Stage Analysis
 #### First Stage: Using PROC REG (or PROC GLM), obtain estimates of the intercept and slope from the linear regression of distance on (continuous) age for each subject separately. Note: you do not need to provide the SAS output for each subject (this can be suppressed in your SAS code by using the NOPRINT option).
