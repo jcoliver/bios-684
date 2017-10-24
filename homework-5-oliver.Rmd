@@ -94,6 +94,18 @@ In this plot of the means for each gender, both female and male subjects show an
 ### 2. Two-Stage Analysis
 #### First Stage: Using PROC REG (or PROC GLM), obtain estimates of the intercept and slope from the linear regression of distance on (continuous) age for each subject separately. Note: you do not need to provide the SAS output for each subject (this can be suppressed in your SAS code by using the NOPRINT option).
 ##### i) State the model being fitted for each subject including any distributional assumptions.
+
+Our model for the distance measurement of the _i^th^_ subject is:
+
+$$
+Y_{i} = \beta_{1} + \beta_{2}t_{ij} + \varepsilon_{i}
+$$
+Where the within-subject error $\varepsilon_{i}\sim N(0, \sigma_{i}^2)$.
+
+Yi = B1 + B2Time + ei
+Error distribution?
+Variance/Covariance structure?
+
 ##### ii) Calculate the means of the estimated intercepts and the estimated slopes for each of the two genders.
 #### Second Stage:
 ##### i) Using the intercepts obtained in question 2a as the outcome variable, fit a regression model to compare the mean intercepts for each gender. State the model being fitted including any distributional assumptions (for terms in the model which are also parts of the model in question 2a, use the same notation). Obtain an estimate for the difference in mean intercept between genders together with the standard error for the difference. What do you conclude about the difference in mean intercept?
