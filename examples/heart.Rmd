@@ -1,0 +1,82 @@
+---
+title: "LMM Lab - R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(reshape2)
+library(dplyr)
+library(ggplot2)
+library(nlme)
+setwd("/Users/jzhou/GoogleDrive/Teaching/CPH684/JinZhou-Fall17/Lec16-LMMLab")
+```
+
+```{r}
+#convert to long format data
+hrunivariate=melt(hrmultivariate,id.vars=c("id","drug"))
+hrunivariate <- hrunivariate[order(hrunivariate$id,hrunivariate$variable),]
+
+names(hrunivariate)[3]="time"
+names(hrunivariate)[4]="hr"
+hrunivariate$time <- gsub("hr", "", hrunivariate$time, perl=TRUE)
+hrunivariate$time=as.numeric(as.character(hrunivariate$time)) #convert factor to numeric 
+hrunivariate$t = hrunivariate$time
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==60,6)
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==30,5)
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==15,4)
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==5,3)
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==1,2)
+hrunivariate$t <- replace(hrunivariate$t,hrunivariate$t==0,1)
+
+hrunbalanced <- hrunivariate
+hrunbalanced[which(hrunbalanced$id == 1 &  hrunbalanced$time == 60),3]=45
+hrunbalanced[which(hrunbalanced$id == 1 &  hrunbalanced$time == 45),5]=5.5
+hrunbalanced[which(hrunbalanced$id == 2 &  hrunbalanced$time == 30),3]=22
+hrunbalanced[which(hrunbalanced$id == 2 &  hrunbalanced$time == 22),5]=4.5
+
+delete.index <- which(hrunbalanced$id == 13 &  hrunbalanced$time == 5)
+hrunbalanced <- hrunbalanced[-1*delete.index,]
+delete.index <- which(hrunbalanced$id == 13 &  hrunbalanced$time == 30)
+hrunbalanced <- hrunbalanced[-1*delete.index,]
+```
+
+```{r}
+##### Two-stage analysis
+#Stage I: Get intercept/slope for each individual
+ids <- unique(hrunbalanced$id)
+ind.reg=data.frame(matrix(ncol = 2, nrow = length(ids)))
+for (i in 1:length(ids)) {  #for each individual
+  temp.data=hrunbalanced[hrunbalanced$id==ids[i],]
+  temp=lm(temp.data$hr ~ temp.data$time)
+  ind.reg[i,]=temp$coef  #compute regression
+}
+ind.reg=cbind(ind.reg,hrmultivariate$drug) #add drug column
+names(ind.reg)=c("intercept","slope","drug")
+aggregate(.~drug, data=ind.reg, mean) #mean intercept and slope by gender
+
+#Stage II: for i) and ii)
+summary(lm(intercept~drug,data=ind.reg)) 
+summary(lm(slope~drug,data=ind.reg))
+#note: the residual standard error (0.34) for iii) is reported in the summary
+```
+
+```{r}
+##### Question 3 LMM fit
+hrunbalanced$drug=relevel(hrunbalanced$drug,"a") 
+#define model
+lmm1 =lme(hr ~ drug + time + drug:time,
+          random = ~1 + time | id,
+          data=hrunbalanced )
+#get "G" matrix for b)
+getVarCov(lmm1)
+#get summary. contains values needed for c) d) e) 
+summary(lmm1)
+
+#compute stdev of of slope cond on drug for a)
+sqrt(getVarCov(lmm1)[2,2])
+#get the V matrix for individual 1 for g
+t=getVarCov(lmm1,1,"marginal");
+t #covariance matrix
+#note, t is a list - need to extract 1st element for type conversion
+cov2cor(as.matrix(t[[1]])) #correlation matrix
+```
