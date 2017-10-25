@@ -234,13 +234,37 @@ g.matrix <- getVarCov(obj = lmm)
 between.var.intercept <- g.matrix[1, 1]
 ```
 
+# TODO: Check this within-subject variance calculation
+
 The within-subject variance in intercept is `r round(within.var.intercept, 3)`, while the between-subject variance in intercepts is `r round(between.var.intercept, 3)`. The greater between-subject variance suggests (to me, at least), that the fixed effects have a greater impact on intercept than does within-subject variation (random effects).
 
 #### c. Obtain estimates for the differences in mean intercept and mean slope by gender and their associated standard errors. What do you conclude about these differences?
 ```{r}
 lmm.summary <- summary(object = lmm)
+betas <- data.frame(coeff = c("intercept", "group", "slope", "interaction"), estimate = NA, se = NA)
+betas[, 2:3] <- lmm.summary$tTable[, 1:2]
+rownames(betas) <- betas$coeff
+
+reporting <- c("lower", "lower")
+
+names(reporting) <- c("group", "interaction")
+if (betas["group", "estimate"] > 0) {
+  reporting["group"] <- "higher"
+}
+if (betas["interaction", "estimate"] > 0) {
+  reporting["interaction"] <- "higher"
+}
+
+
+group.ci <- c(betas["group", "estimate"] - 1.96*betas["group", "se"], betas["group", "estimate"] + 1.96*betas["group", "se"])
+group.ci <- round(group.ci, 3)
+interaction.ci <- c(betas["interaction", "estimate"] - 1.96*betas["interaction", "se"], betas["interaction", "estimate"] + 1.96*betas["interaction", "se"])
+interaction.ci <- round(interaction.ci, 3)
 ```
 
+**Intercept:** The expected intercept at age 0 for boys is `r reporting["group"]` than girls by `r abs(round(betas["group", "estimate"], 3))` mm. The 95% CI is (`r group.ci[1]`, `r group.ci[2]`); as zero is included in this interval, it is unlikely that the intercept at age 0 is different between girls and boys.
+
+**Slope:** The expected slope for boys is `r reporting["interaction"]` than girls by `r abs(round(betas["interaction", "estimate"], 3))` mm/year. The 95% CI is (`r interaction.ci[1]`, `r interaction.ci[2]`); this interaction does not include zero, suggesting that the population-averaged slopes of girls and boys are different.
 
 #### d. Compare the estimates and their standard errors in question 3c to those obtained in question 2. What do you notice? Will this occur in all randomized trials with two groups and longitudinal measurements? Justify your answer.
 #### e. Obtain and provide an interpretation for the correlation of the intercept and slope among subjects.
