@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("ggplot2")
 library("tidyr")
 library("dplyr")
+library("nlme")
 ```
 
 <!--
@@ -191,9 +192,56 @@ The standard deviation of the residuals is `r slope.residual.sd`. This is the st
 
 ### (Joint) Mixed Effects Analysis. 
 #### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
+```{r}
+lmm <- lme(fixed = distance ~ gender + year + gender * year,
+           random = ~1 + year | ID,
+           data = dental.long)
+```
+
 #### a. State the model being fitted including any distributional assumptions. As much as possible, use the same notation as you used in question 2.
+
+Our model for distance is:
+$$
+Y_{ij} = \beta_{1} + \beta_{2}Gender_{i} + \beta_{3}t_{ij} + \beta_{4}Gender_{i} \times t_{ij} + b_{1i} + b_{2i}t_{ij} + \varepsilon_{ij}
+$$
+
+Where:
++ $\beta_{1}$ is the population-averaged intercept at age 0 for girls
++ $\beta_{2}$ is the population-averaged difference in intercepts at age 0 between girls and boys
++ $\beta_{3}$ is the population averaged slope for girls
++ $\beta_{4}$ is the population-averaged difference in slope between girls and boys
++ $b_{1i}$ is the random effect intercept for the _i^th^_ subject
++ $b_{2i}$ is the random effect slope for the _i^th^_ subject
+
+The random effects, $b_{i} \sim MVN(0, G)$, where $G$ is a $2 \times 2$ matrix:
+
+$$
+G = 
+\begin{pmatrix}
+g_{11} & g_{12} \\
+g_{21} & g_{22}
+\end{pmatrix}
+$$
+and $g_{11} = Var(b_{1i})$, $g_{22} = Var(b_{2i})$, and $g_{12} = g_{21} = Cov(b_{1i}, b_{2i})$. Finally, we are assuming conditional independence, where the within-subject error is $\varepsilon_{ij} \sim N(0, R_{i})$ and $R_{i} = \sigma^2I_{n_{i}}$.
+
 #### b. Compare the within-subject “error” variance to the between subject variance of the intercepts. What do you conclude?
+```{r}
+# Within-subject variance
+within.var.intercept <- sd(lmm$coefficients$random$ID[, 1])^2
+
+# Between subject variance
+g.matrix <- getVarCov(obj = lmm)
+between.var.intercept <- g.matrix[1, 1]
+```
+
+The within-subject variance in intercept is `r round(within.var.intercept, 3)`, while the between-subject variance in intercepts is `r round(between.var.intercept, 3)`. The greater between-subject variance suggests (to me, at least), that the fixed effects have a greater impact on intercept than does within-subject variation (random effects).
+
 #### c. Obtain estimates for the differences in mean intercept and mean slope by gender and their associated standard errors. What do you conclude about these differences?
+```{r}
+lmm.summary <- summary(object = lmm)
+```
+
+
 #### d. Compare the estimates and their standard errors in question 3c to those obtained in question 2. What do you notice? Will this occur in all randomized trials with two groups and longitudinal measurements? Justify your answer.
 #### e. Obtain and provide an interpretation for the correlation of the intercept and slope among subjects.
 #### f. From your model, conditional upon gender, obtain the standard deviation of the slopes among subjects. Provide a clinically meaningful interpretation of this standard deviation.
