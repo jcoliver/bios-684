@@ -100,7 +100,7 @@ Our model for the distance measurement of the _i^th^_ subject is:
 $$
 Y_{i} = \beta_{1i} + \beta_{2i}t_{ij} + \varepsilon_{i}
 $$
-Where $\beta_{1i}$ is the intercept of the _i^th^_ subject, $\beta_{2i}$ is the slope describing the relationship between time and distance, and the within-subject error is normally distributed, $\varepsilon_{i}\sim N(0, \sigma_{i}^2)$. We are also assuming a linear relationship between time and distance.
+Where $\beta_{1i}$ is the intercept of the _i^th^_ subject, $\beta_{2i}$ is the slope describing the relationship between time and distance, and the within-subject error is normally distributed, $\varepsilon_{i}\sim N(0, \sigma_{i}^2)$. We are also assuming a linear relationship between time and distance and independence among the individual $\varepsilon_{i}$s.
 
 ##### ii) Calculate the means of the estimated intercepts and the estimated slopes for each of the two genders.
 ```{r stage-one-lmm}
@@ -183,8 +183,11 @@ if (slope.difference > 0) {
 From this model, we estimate that the slope in boys, on average, is `r slope.diff.dir` than that of girls by `r abs(round(slope.difference, 3))`. Given the standard error for this estimate (`r round(slope.se, 3)`), it is likely the slopes are different between the two genders.
 
 ##### iii) Obtain and interpret the standard deviation of the residuals (“errors”) from the model in part ii).
-
-
+```{r}
+slope.residual.sd <- round(sd(slope.model.summary$residuals), 3)
+slope.residual.var <- round(sd(slope.model.summary$residuals)^2, 3)
+```
+The standard deviation of the residuals is `r slope.residual.sd`. This is the standard deviation for , $b_{2i}$, the individual deviations from the population-averaged slope. Taking the square of this standard deviation then gives $\sigma^2 = Var(b_{2i}) = `r slope.residual.var`$
 
 ### (Joint) Mixed Effects Analysis. 
 #### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
