@@ -54,7 +54,7 @@ dental.long$year.cat <- as.factor(dental.long$year)
 ### 1. Descriptive Analysis
 #### a. Describe key features of the study’s design and the completeness of data.
 
-The study has a total of `r nrows(dental.data)` subjects, `r sum(dental.data$gender == "F")` girls and `r sum(dental.data$gender == "M")` boys. All subjects were sampled at each of four time points (8, 10, 12, and 14 years), thus the experimental design is balanced and the data are complete.
+The study has a total of `r nrow(dental.data)` subjects, `r sum(dental.data$gender == "F")` girls and `r sum(dental.data$gender == "M")` boys. All subjects were sampled at each of four time points (8, 10, 12, and 14 years), thus the experimental design is balanced and the data are complete.
 
 #### b. Create two plots, one for each gender, showing the trajectories of each subject’s distance over time. Comment on the notable features in these trajectories.
 ```{r spaghetti-plot}
@@ -98,19 +98,93 @@ In this plot of the means for each gender, both female and male subjects show an
 Our model for the distance measurement of the _i^th^_ subject is:
 
 $$
-Y_{i} = \beta_{1} + \beta_{2}t_{ij} + \varepsilon_{i}
+Y_{i} = \beta_{1i} + \beta_{2i}t_{ij} + \varepsilon_{i}
 $$
-Where the within-subject error $\varepsilon_{i}\sim N(0, \sigma_{i}^2)$.
-
-Yi = B1 + B2Time + ei
-Error distribution?
-Variance/Covariance structure?
+Where $\beta_{1i}$ is the intercept of the _i^th^_ subject, $\beta_{2i}$ is the slope describing the relationship between time and distance, and the within-subject error is normally distributed, $\varepsilon_{i}\sim N(0, \sigma_{i}^2)$. We are also assuming a linear relationship between time and distance.
 
 ##### ii) Calculate the means of the estimated intercepts and the estimated slopes for each of the two genders.
+```{r stage-one-lmm}
+# Identify subjects
+ids <- unique(dental.long$ID)
+
+# Set up data frame for intercepts and slopes
+ind.betas <- data.frame(intercept = rep(x = NA, times = length(ids)),
+                    slope = NA,
+                    gender = NA)
+rownames(ind.betas) <- ids
+ind.betas$gender <- factor(NA, levels = levels(dental.long$gender))
+
+# Iterate over each ID and estimate model coefficients
+for (id in ids) {
+  current.data <- dental.long[dental.long$ID == id, ]
+  current.lm <- lm(distance ~ year, data = current.data)
+  ind.betas[id, "intercept"] <- current.lm$coefficients[[1]]
+  ind.betas[id, "slope"] <- current.lm$coefficients[[2]]
+  ind.betas[id, "gender"] <- current.data$gender[1]
+}
+
+# Calculate means for each gender
+ind.beta.means <- ind.betas %>%
+  group_by(gender) %>%
+  summarize(mean.intercept = round(mean(intercept), 3),
+            mean.slope = round(mean(slope), 3))
+ind.beta.means <- data.frame(ind.beta.means)
+rownames(ind.beta.means) <- ind.beta.means$gender
+```
+The mean values for intercept and slope are:
+
+| Gender | Intercept | Slope |
+|:-------|:---------:|:-----:|
+| Female | `r ind.beta.means["F", "mean.intercept"]` | `r ind.beta.means["F", "mean.slope"]` |
+| Male   | `r ind.beta.means["M", "mean.intercept"]` | `r ind.beta.means["M", "mean.slope"]` |
+
+Note the intercept is for year 0, not year 8.
+
 #### Second Stage:
 ##### i) Using the intercepts obtained in question 2a as the outcome variable, fit a regression model to compare the mean intercepts for each gender. State the model being fitted including any distributional assumptions (for terms in the model which are also parts of the model in question 2a, use the same notation). Obtain an estimate for the difference in mean intercept between genders together with the standard error for the difference. What do you conclude about the difference in mean intercept?
+Our model for the mean intercepts of the two genders is:
+$$
+\beta_{1i} = \beta_{1} + \beta_{2}Gender_{i} + b_{1i}
+$$
+Where $\beta_{1}$ is the population-averaged intercept for girls (the first level of $Gender$), $\beta_{2}$ is the population-averaged difference between the intercepts of girls and boys, and $b_{1i}$ is the subject-specific measurement error in intercept, with a normal distribution $b_{1i} \sim N(0, Var(b_{1i}))$.
+
+```{r stage-two-lmm-intercepts}
+intercept.model <- lm(intercept ~ gender, data = ind.betas)
+intercept.model.summary <- summary(intercept.model)
+intercept.difference <- intercept.model.summary$coefficients[2, 1]
+intercept.se <- intercept.model.summary$coefficients[2, 2]
+int.diff.dir <- "lower"
+if (intercept.difference > 0) {
+  int.diff.dir <- "higher"
+}
+```
+
+From this model, we estimate that the intercept in boys, on average, is `r int.diff.dir` than that of girls by `r abs(round(intercept.difference, 3))`. Given the standard error for this estimate (`r round(intercept.se, 3)`), it is unlikely the intercepts at age zero are different between the two genders. Note we would most likely have a different conclusion (intercepts _are_ different between boys and girls) if we had considered the intercept to be at year 8.
+
 ##### ii) Repeat i) but using the slopes obtained in question 2a as the outcome variable. What do you conclude about the difference in mean slope?
+
+Our model for the mean slopes of the two genders is:
+$$
+\beta_{2i} = \beta_{3} + \beta_{4}Gender_{i} + b_{2i}
+$$
+Where $\beta_{3}$ is the population-averaged slope for girls (the first level of $Gender$), $\beta_{4}$ is the population-averaged difference between the slopes of girls and boys, and $b_{2i}$ is the subject-specific measurement error in slope, with a normal distribution $b_{2i} \sim N(0, Var(b_{2i}))$.
+
+```{r stage-two-lmm-slopes}
+slope.model <- lm(slope ~ gender, data = ind.betas)
+slope.model.summary <- summary(slope.model)
+slope.difference <- slope.model.summary$coefficients[2, 1]
+slope.se <- slope.model.summary$coefficients[2, 2]
+slope.diff.dir <- "lower"
+if (slope.difference > 0) {
+  slope.diff.dir <- "higher"
+}
+```
+
+From this model, we estimate that the slope in boys, on average, is `r slope.diff.dir` than that of girls by `r abs(round(slope.difference, 3))`. Given the standard error for this estimate (`r round(slope.se, 3)`), it is likely the slopes are different between the two genders.
+
 ##### iii) Obtain and interpret the standard deviation of the residuals (“errors”) from the model in part ii).
+
+
 
 ### (Joint) Mixed Effects Analysis. 
 #### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
