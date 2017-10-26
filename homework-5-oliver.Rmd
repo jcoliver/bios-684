@@ -295,11 +295,30 @@ These estimates are identical between the two approaches. The similarities in es
 The correlation between intercept and slope between subjects is $Cov(b_{1i}, b_{2i}) = `r round(g.matrix[1, 2], 3)`$, indicating that subjects with larger intercepts have lower slopes and vice-versa.
 
 #### f. From your model, conditional upon gender, obtain the standard deviation of the slopes among subjects. Provide a clinically meaningful interpretation of this standard deviation.
-
+The standard deviation of slopes among girls is $Var(b_{2i}) = `r round(sqrt(g.matrix[2, 2]), 3)`$. This is a measure of the variation in the effect of time on distance in girls.
 
 #### g. Obtain the marginal correlation matrix for the vector of responses, Yi = (Yi1, Yi2, Yi3, Yi4), for the subject with ID=1. Considering your findings in response to question 3b, why are the correlations relatively large but not extremely strong?
+```{r marginal-correlation-1}
+subj.1.var <- getVarCov(obj = lmm, individuals = 1, type = "marginal")
+corr.matrix <- cov2cor(as.matrix(subj.1.var[[1]]))
+corr.matrix <- round(corr.matrix, 3)
+```
+
+The correlation matrix is:
+$$
+\begin{bmatrix}
+`r corr.matrix[1, 1]` & `r corr.matrix[1, 2]` & `r corr.matrix[1, 3]` & `r corr.matrix[1, 4]` \\
+`r corr.matrix[2, 1]` & `r corr.matrix[2, 2]` & `r corr.matrix[2, 3]` & `r corr.matrix[2, 4]` \\
+`r corr.matrix[3, 1]` & `r corr.matrix[3, 2]` & `r corr.matrix[3, 3]` & `r corr.matrix[3, 4]` \\
+`r corr.matrix[4, 1]` & `r corr.matrix[4, 2]` & `r corr.matrix[4, 3]` & `r corr.matrix[4, 4]`
+\end{bmatrix}
+$$
+Given the relatively low within-subject variation observed in question 3b, the weak correlations are expected; the fixed-effects of time and gender have a substantial influence of the response profile of distance.
+
 #### h. The data for this study could also be analyzed using the repeated measures approach discussed extensively earlier in the course.
 ##### i) Define a repeated measures model with an unstructured variance- covariance matrix and the same form of fixed effects model as in question 3a which could be used.
+
+
 ##### ii) Fit this model and use the AIC statistic to assess the goodness of fit of the variance-covariance structure induced by the mixed effects model. What do you conclude?
 
 ***
