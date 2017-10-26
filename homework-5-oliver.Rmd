@@ -184,7 +184,7 @@ if (slope.difference > 0) {
 From this model, we estimate that the slope in boys, on average, is `r slope.diff.dir` than that of girls by `r abs(round(slope.difference, 3))`. Given the standard error for this estimate (`r round(slope.se, 3)`), it is likely the slopes are different between the two genders.
 
 ##### iii) Obtain and interpret the standard deviation of the residuals (“errors”) from the model in part ii).
-```{r}
+```{r residuals}
 slope.residual.sd <- round(sd(slope.model.summary$residuals), 3)
 slope.residual.var <- round(sd(slope.model.summary$residuals)^2, 3)
 ```
@@ -192,7 +192,7 @@ The standard deviation of the residuals is `r slope.residual.sd`. This is the st
 
 ### (Joint) Mixed Effects Analysis. 
 #### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
-```{r}
+```{r lmm-model}
 lmm <- lme(fixed = distance ~ gender + year + gender * year,
            random = ~1 + year | ID,
            data = dental.long)
@@ -225,21 +225,19 @@ $$
 and $g_{11} = Var(b_{1i})$, $g_{22} = Var(b_{2i})$, and $g_{12} = g_{21} = Cov(b_{1i}, b_{2i})$. Finally, we are assuming conditional independence, where the within-subject error is $\varepsilon_{ij} \sim N(0, R_{i})$ and $R_{i} = \sigma^2I_{n_{i}}$.
 
 #### b. Compare the within-subject “error” variance to the between subject variance of the intercepts. What do you conclude?
-```{r}
+```{r within-between-error}
 # Within-subject variance
-within.var.intercept <- sd(lmm$coefficients$random$ID[, 1])^2
+within.var <- lmm$sigma^2
 
 # Between subject variance
 g.matrix <- getVarCov(obj = lmm)
 between.var.intercept <- g.matrix[1, 1]
 ```
 
-# TODO: Check this within-subject variance calculation
-
-The within-subject variance in intercept is `r round(within.var.intercept, 3)`, while the between-subject variance in intercepts is `r round(between.var.intercept, 3)`. The greater between-subject variance suggests (to me, at least), that the fixed effects have a greater impact on intercept than does within-subject variation (random effects).
+The within-subject variance is `r round(within.var, 3)`, while the between-subject variance in intercepts is `r round(between.var.intercept, 3)`. The greater between-subject variance suggests (to me, at least), that the fixed effects have a greater impact on intercept than does within-subject variation (random effects).
 
 #### c. Obtain estimates for the differences in mean intercept and mean slope by gender and their associated standard errors. What do you conclude about these differences?
-```{r}
+```{r gender-differences-lmm}
 lmm.summary <- summary(object = lmm)
 betas <- data.frame(coeff = c("intercept", "group", "slope", "interaction"), estimate = NA, se = NA)
 betas[, 2:3] <- lmm.summary$tTable[, 1:2]
@@ -267,8 +265,38 @@ interaction.ci <- round(interaction.ci, 3)
 **Slope:** The expected slope for boys is `r reporting["interaction"]` than girls by `r abs(round(betas["interaction", "estimate"], 3))` mm/year. The 95% CI is (`r interaction.ci[1]`, `r interaction.ci[2]`); this interaction does not include zero, suggesting that the population-averaged slopes of girls and boys are different.
 
 #### d. Compare the estimates and their standard errors in question 3c to those obtained in question 2. What do you notice? Will this occur in all randomized trials with two groups and longitudinal measurements? Justify your answer.
+```{r compare-estimates}
+# Extract parameter estimates from relevant models for reporting
+beta.compare <- data.frame(two.stage.est = rep(NA, times = 4), 
+                           two.stage.se = NA,
+                           lmm.est = NA,
+                           lmm.se = NA)
+rownames(beta.compare) <- c("Intercept", "Gender", "Slope", "Interaction")
+
+beta.compare["Intercept", ] <- c(intercept.model.summary$coefficients[1, 1:2], lmm.summary$tTable[1, 1:2])
+beta.compare["Gender", ] <- c(intercept.model.summary$coefficients[2, 1:2], lmm.summary$tTable[2, 1:2])
+beta.compare["Slope", ] <- c(slope.model.summary$coefficients[1, 1:2], lmm.summary$tTable[3, 1:2])
+beta.compare["Interaction", ] <- c(slope.model.summary$coefficients[2, 1:2], lmm.summary$tTable[4, 1:2])
+beta.compare <- round(beta.compare, 3)
+```
+
+The estimates for the coefficients (with standard errors) are:
+
+| Coefficient | 2-Stage (question 2) | LMM (question 3c) |
+|:------------|:--------------------:|:-----------------:|
+| Intercept   | `r beta.compare[1, 1]` (`r beta.compare[1, 2]`) | `r beta.compare[1, 3]` (`r beta.compare[1, 4]`) |
+| Gender      | `r beta.compare[2, 1]` (`r beta.compare[2, 2]`) | `r beta.compare[2, 3]` (`r beta.compare[2, 4]`) |
+| Slope       | `r beta.compare[3, 1]` (`r beta.compare[3, 2]`) | `r beta.compare[3, 3]` (`r beta.compare[3, 4]`) |
+| Interaction | `r beta.compare[4, 1]` (`r beta.compare[4, 2]`) | `r beta.compare[4, 3]` (`r beta.compare[4, 4]`) |
+
+These estimates are identical between the two approaches. The similarities in estimates is likely due to our balanced design - all subjects were measured at the same four time points. If the number and/or timing of measurements varies among subjects, the fact that the $\beta_{i}$ coefficents are estimated in stage I is not accounted for in stage II. Additionally, the two-stage approach restricts all covariates in stage I to be time-variant (except for the intercept), while stage II covariates must be time-invariant (gender, group, etc.). The linear mixed effects model only requires the random-effects covariates be a subset of the fixed-effects covariates.
+
 #### e. Obtain and provide an interpretation for the correlation of the intercept and slope among subjects.
+The correlation between intercept and slope between subjects is $Cov(b_{1i}, b_{2i}) = `r round(g.matrix[1, 2], 3)`$, indicating that subjects with larger intercepts have lower slopes and vice-versa.
+
 #### f. From your model, conditional upon gender, obtain the standard deviation of the slopes among subjects. Provide a clinically meaningful interpretation of this standard deviation.
+
+
 #### g. Obtain the marginal correlation matrix for the vector of responses, Yi = (Yi1, Yi2, Yi3, Yi4), for the subject with ID=1. Considering your findings in response to question 3b, why are the correlations relatively large but not extremely strong?
 #### h. The data for this study could also be analyzed using the repeated measures approach discussed extensively earlier in the course.
 ##### i) Define a repeated measures model with an unstructured variance- covariance matrix and the same form of fixed effects model as in question 3a which could be used.
