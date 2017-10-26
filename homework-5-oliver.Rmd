@@ -90,7 +90,8 @@ group.trajectories <- ggplot(data = dental.means, mapping = aes(x = year.cat, y 
 
 group.trajectories
 ```
-In this plot of the means for each gender, both female and male subjects show an increase of distance over time. There appears, if 8 years is considered the baseline for this experiment, to be a different intercept between the two groups. That is, at the age of eigth, males appear to have a larger distance than females at the same age. The rate of change between the two groups migth be different, with a slightly higher rate of growth in males, but it is difficult to tell from this graph. There do not appear to be distinct differences in variance through time or between groups.
+  
+In this plot of the means for each gender, both female and male subjects show an increase of distance over time. There appears, if 8 years is considered the baseline for this experiment, to be a different intercept between the two groups. That is, at the age of eight, males appear to have a larger distance than females at the same age. The rate of change between the two groups might be different, with a slightly higher rate of growth in males, but it is difficult to tell from this graph. There do not appear to be distinct differences in variance through time or between groups.
 
 ### 2. Two-Stage Analysis
 #### First Stage: Using PROC REG (or PROC GLM), obtain estimates of the intercept and slope from the linear regression of distance on (continuous) age for each subject separately. Note: you do not need to provide the SAS output for each subject (this can be suppressed in your SAS code by using the NOPRINT option).
@@ -188,7 +189,7 @@ From this model, we estimate that the slope in boys, on average, is `r slope.dif
 slope.residual.sd <- round(sd(slope.model.summary$residuals), 3)
 slope.residual.var <- round(sd(slope.model.summary$residuals)^2, 3)
 ```
-The standard deviation of the residuals is `r slope.residual.sd`. This is the standard deviation for , $b_{2i}$, the individual deviations from the population-averaged slope. Taking the square of this standard deviation then gives $\sigma^2 = Var(b_{2i}) = `r slope.residual.var`$
+The standard deviation of the residuals is `r slope.residual.sd`. This is the standard deviation for, $b_{2i}$, the individual deviations from the population-averaged slope. Taking the square of this standard deviation then gives $\sigma^2 = Var(b_{2i}) = `r slope.residual.var`$.
 
 ### (Joint) Mixed Effects Analysis. 
 #### Using PROC MIXED, fit a model for distance on (continuous) age which includes subject-specific intercepts and slopes as random effects and allows both the mean intercept and the mean slope (fixed effects) to differ by gender.
@@ -206,6 +207,7 @@ Y_{ij} = \beta_{1} + \beta_{2}Gender_{i} + \beta_{3}t_{ij} + \beta_{4}Gender_{i}
 $$
 
 Where:
+
 + $\beta_{1}$ is the population-averaged intercept at age 0 for girls
 + $\beta_{2}$ is the population-averaged difference in intercepts at age 0 between girls and boys
 + $\beta_{3}$ is the population averaged slope for girls
@@ -289,7 +291,7 @@ The estimates for the coefficients (with standard errors) are:
 | Slope       | `r beta.compare[3, 1]` (`r beta.compare[3, 2]`) | `r beta.compare[3, 3]` (`r beta.compare[3, 4]`) |
 | Interaction | `r beta.compare[4, 1]` (`r beta.compare[4, 2]`) | `r beta.compare[4, 3]` (`r beta.compare[4, 4]`) |
 
-These estimates are identical between the two approaches. The similarities in estimates is likely due to our balanced design - all subjects were measured at the same four time points. If the number and/or timing of measurements varies among subjects, the fact that the $\beta_{i}$ coefficents are estimated in stage I is not accounted for in stage II. Additionally, the two-stage approach restricts all covariates in stage I to be time-variant (except for the intercept), while stage II covariates must be time-invariant (gender, group, etc.). The linear mixed effects model only requires the random-effects covariates be a subset of the fixed-effects covariates.
+These estimates are identical between the two approaches. The similarity in estimates is likely due to our balanced design - all subjects were measured at the same four time points. If the number and/or timing of measurements varies among subjects, these estimates would not likely be the same, due to the fact that the $\beta_{i}$ coefficents are estimated in stage I is not accounted for in stage II. Additionally, the two-stage approach restricts all covariates in stage I to be time-variant (except for the intercept), while stage II covariates must be time-invariant (gender, group, etc.). The linear mixed effects model only requires the random-effects covariates be a subset of the fixed-effects covariates.
 
 #### e. Obtain and provide an interpretation for the correlation of the intercept and slope among subjects.
 The correlation between intercept and slope between subjects is $Cov(b_{1i}, b_{2i}) = `r round(g.matrix[1, 2], 3)`$, indicating that subjects with larger intercepts have lower slopes and vice-versa.
@@ -297,7 +299,7 @@ The correlation between intercept and slope between subjects is $Cov(b_{1i}, b_{
 #### f. From your model, conditional upon gender, obtain the standard deviation of the slopes among subjects. Provide a clinically meaningful interpretation of this standard deviation.
 The standard deviation of slopes among girls is $Var(b_{2i}) = `r round(sqrt(g.matrix[2, 2]), 3)`$. This is a measure of the variation in the effect of time on distance in girls.
 
-#### g. Obtain the marginal correlation matrix for the vector of responses, Yi = (Yi1, Yi2, Yi3, Yi4), for the subject with ID=1. Considering your findings in response to question 3b, why are the correlations relatively large but not extremely strong?
+#### g. Obtain the marginal correlation matrix for the vector of responses, $Y_{i} = (Y_{i1}, Y_{i2}, Y_{i3}, Y_{i4})$, for the subject with ID=1. Considering your findings in response to question 3b, why are the correlations relatively large but not extremely strong?
 ```{r marginal-correlation-1}
 subj.1.var <- getVarCov(obj = lmm, individuals = 1, type = "marginal")
 corr.matrix <- cov2cor(as.matrix(subj.1.var[[1]]))
@@ -318,8 +320,46 @@ Given the relatively low within-subject variation observed in question 3b, the w
 #### h. The data for this study could also be analyzed using the repeated measures approach discussed extensively earlier in the course.
 ##### i) Define a repeated measures model with an unstructured variance- covariance matrix and the same form of fixed effects model as in question 3a which could be used.
 
+$$
+Y_{ij} = \beta_{1} + \beta_{2}Gender_{i} + \beta_{3}X_{1ij} + \beta_{4}X_{2ij} + \beta_{5}X_{3ij} + \beta_{6}Gender_{i} \times X_{1ij} + \beta_{7}Gender_{i} \times X_{2ij} + \beta_{8}Gender_{i} \times X_{3ij} + \varepsilon_{ij}
+$$
+Where:
+$$
+\begin{array}{l}
+  Gender_{i} =  
+    \begin{cases}
+      0, & \text{if subject is a girl} \\
+      1, & \text{if subject is a boy}
+    \end{cases} \\
+  X_{1ij} = 1 \text{ if measurement is for year 10, 0 otherwise} \\
+  X_{2ij} = 1 \text{ if measurement is for year 12, 0 otherwise} \\
+  X_{3ij} = 1 \text{ if measurement is for year 14, 0 otherwise}
+\end{array}
+$$
+
+With an unstructured covariance for $Y_{ij}$:
+$$
+Cov(Y_{i}) = 
+\begin{pmatrix}
+\sigma_{8}^2 & \sigma_{8, 10} & \sigma_{8, 12} & \sigma_{8, 14} \\
+\sigma_{10,8} & \sigma_{10}^2 & \sigma_{10, 12} & \sigma_{10, 14} \\
+\sigma_{12,8} & \sigma_{12, 10} & \sigma_{12}^2 & \sigma_{12, 14} \\
+\sigma_{14,8} & \sigma_{14, 10} & \sigma_{14, 12} & \sigma_{14}^2
+\end{pmatrix}
+$$
+This unstructured variance-covariance model requires 10 variance parameters to be estimated.
 
 ##### ii) Fit this model and use the AIC statistic to assess the goodness of fit of the variance-covariance structure induced by the mixed effects model. What do you conclude?
+```{r repeated-anova}
+repeated.anova <- gls(distance ~ year,
+                      data = dental.long,
+                      correlation = corSymm(form = ~1 | ID),
+                      weights = varIdent(form = ~1 | year.cat),
+                      method = "REML")
+repeated.summary <- summary(repeated.anova)
+
+```
+The AIC for this repeated-measures ANOVA is `r round(repeated.summary$AIC, 3)`, which is higher than the AIC for the linear mixed effects model (`r round(lmm.summary$AIC, 3)`). Thus the linear mixed effects model is preferred given the lower AIC. The difference likely stems from the fact that the repeated-measures ANOVA design requires more parameters to be estimated for the model than does the linear mixed-effects model.
 
 ***
 ***
