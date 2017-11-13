@@ -1,0 +1,99 @@
+---
+title: "Homework 6"
+subtitle: "BIOS 684"
+author: "Jeff Oliver"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+  latex_engine: xelatex
+---
+
+```{r setup, include=FALSE, fig.height = 4}
+knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
+library("tidyr")
+library("dplyr")
+library("ggplot2")
+library("nlme")
+```
+
+***
+<!--
+Study of weights of pigs:
+The dataset (on the class web page) called pigweight.txt includes data on the bodyweights
+of 16 pigs measured in nine successive weeks (so spanning an eight week period between
+the first and last measurement). Each row of the dataset includes a pig ID number and
+then the nine successive weights. [The data are from the book by Diggle et al., 2002].
+-->
+
+```{r}
+pig.data <- read.delim(file = "data/pigweight.txt", header = FALSE, sep = " ")
+colnames(pig.data) <- c("ID", paste0("week.", c(0:8)))
+
+long.data <- gather(data = pig.data, key = "week.cat", value = "weight", -ID)
+long.data$week <- as.integer(substr(x = long.data$week.cat, start = 6, stop = 6))
+```
+
+### 1. Descriptive Analysis
+### Create two plots, one showing the trajectories of each pig’s weight over time and the other showing the trajectory of the mean weight over time. Comment on the notable features in these plots.
+
+```{r}
+# Plot individual trajectories
+subject.trajectories <- ggplot(data = long.data, mapping = aes(x = week, y = weight, group = ID)) +
+  geom_line() +
+  ylab(label = "Weight") +
+  xlab(label = "Week") +
+  ggtitle(label = "Individual weight trajectories over time")
+subject.trajectories
+
+# Calculate means & standard errors for each week
+mean.weights <- long.data %>%
+  group_by(week) %>%
+  summarise(mean.weight = mean(weight),
+            se.weight = sd(weight)/sqrt(nrow(pig.data)))
+# Plot mean trajectory
+mean.trajectories <- ggplot(data = mean.weights, mapping = aes(x = week, y = mean.weight)) +
+  geom_errorbar(data = mean.weights, mapping = aes(x = week, ymin = (mean.weight - se.weight), ymax = (mean.weight + se.weight), width = 0.15)) +
+  geom_line() +
+  ylab(label = "Weight") +
+  xlab(label = "Week") +
+  ggtitle(label = "Mean weights over time")
+mean.trajectories
+```
+
+Observations: All subjects have increasing weight through time, and the relationship appears linear for the time studied. There might be subject-specific intercepts and slopes, though; subjects that had low weight at baseline had potentially lower growth rates than did subjects with higher baseline weights. This potential difference in slopes may be contributing to increasing between-subject variance over time (heterogeneous variance).
+
+### 2. Obtaining and Interpreting a Linear Mixed Effects Model for Bodyweight. Using PROC MIXED, fit a model for weight over (continuous) time which includes subject-specific intercepts and slopes as random effects.
+
+The model is:
+
+$$
+Y_{ij} = \beta_{1} + \beta_{2}Week + b_{1i} + b_{2i}Week + \varepsilon_{ij}
+$$
+Where:
+
++ $\beta_{1}$: the mean intercept across subjects
++ $\beta_{2}$: the mean slope across subjects
++ $b_{1i}$: random (subject-specific) intercept
++ $b_{2i}$: random (subject-specific) slope
+
+```{r}
+# lme model with random intercept and slope
+weight.model <- lme(weight ~ week,
+                    random = ~1 + week | ID,
+                    data = long.data)
+
+```
+
+#### a. Obtain and interpret parameter estimates and associated 95% confidence intervals for the fixed effects in the model for the mean trajectory.
+#### b. Obtain and interpret parameter estimates for the variances and correlation in the model.
+#### c. Obtain and interpret the 90% normal range for trends over time in body weight among pigs in the population sampled (i.e. for the pig-specific random effects for trend over time).
+
+### 3. The investigator who provided the data is interested in designing a randomized clinical trial to evaluate an additive to the standard pig feed which might increase the rate of growth over time in bodyweight in pigs. He feels that an increase in bodyweight of 0.2 kg per week above that observed in the study for which the data are provided would be important, and would like to design a study to have 90% power to detect this increase using a two-sided 0.05 level of significance.
+#### a. What sample size would be needed in the randomized trial if the growth rate in the control group (without the additive) was the same as observed in the study for which the data are provided? Assume that the duration of the study from the first to last measurement is 8 weeks and that measurements are obtained every 4 weeks using the same technique as in the study for which the data are provided (so a measurement at times 0, 4 and 8 weeks). Also assume that equal numbers are randomized to each of the intervention (with the additive) and control groups and that the variance components observed in the study for which the data provided are reasonable choices for what would be found in the proposed trial. Show how you derived your answer.
+
+#### b. What do you notice about the data provided that could affect the sample size needed? Briefly justify your answer.
+
+#### c. As the experimental additive is currently difficult to produce, the investigator is interested in knowing whether more frequent measurements or a longer study would markedly reduce the sample size. Develop a table which shows the sample size requirement if measurements were obtained every 4 weeks over an 8 week period (as done for part a), every 4 weeks over a 16 week period, every week over an 8 week period, or every week over a 16 week period. Briefly comment on any additional considerations that might be important in choosing among these four possible designs.
+
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd).
