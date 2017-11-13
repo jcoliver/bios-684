@@ -28,6 +28,7 @@ then the nine successive weights. [The data are from the book by Diggle et al., 
 ```{r}
 pig.data <- read.delim(file = "data/pigweight.txt", header = FALSE, sep = " ")
 colnames(pig.data) <- c("ID", paste0("week.", c(0:8)))
+pig.data$ID <- factor(pig.data$ID)
 
 long.data <- gather(data = pig.data, key = "week.cat", value = "weight", -ID)
 long.data$week <- as.integer(substr(x = long.data$week.cat, start = 6, stop = 6))
@@ -86,11 +87,7 @@ weight.summary <- summary(weight.model)
 
 #### a. Obtain and interpret parameter estimates and associated 95% confidence intervals for the fixed effects in the model for the mean trajectory.
 
-To obtain the 95% confidence intervals, I used:
-
-$$
-95\% C.I. = \hat{\beta} \pm 1.96 \times SE
-$$
+To obtain the 95% confidence intervals, I used: $95\% C.I. = \hat{\beta} \pm 1.96 \times SE$.
 
 ```{r}
 # Retrieve estimates and standard errors for fixed effects
@@ -105,18 +102,44 @@ betas <- round(betas, 2)
 ci <- round(ci, 2)
 ```
 
-| Coefficient | Estimate (CI) |
-|:-----------:|:-------------:|
-| $\beta_{1}$ | `r betas[1, 1]` (`r ci[1, 1]`, `r ci[1, 2]`)|
-| $\beta_{2}$ | `r betas[2, 1]` (`r ci[2, 1]`, `r ci[2, 2]`)|
+| Coefficient | Estimate (CI)     | Interpretation                                                  |
+|:-----------:|:-----------------:|:----------------------------------------------------------------|
+| $\beta_{1}$ | `r betas[1, 1]` (`r ci[1, 1]`, `r ci[1, 2]`)| The population-averaged weight at baseline is `r betas[1, 1]`; the 95% C.I. excludes zero, so it is unlikely the true population-averaged weight at baseline is zero. |
+| $\beta_{2}$ | `r betas[2, 1]` (`r ci[2, 1]`, `r ci[2, 2]`)| The population-averaged effect of time on weight is `r betas[2, 1]`; on average, weight increases by `r betas[2, 1]` every week. Exclusion of zero from the confidence interval indicates a significant effect of time on weight. |
 
 #### b. Obtain and interpret parameter estimates for the variances and correlation in the model.
-#### c. Obtain and interpret the 90% normal range for trends over time in body weight among pigs in the population sampled (i.e. for the pig-specific random effects for trend over time).
 
-<!-- Remember we are assuming b ~ N(0, sigma^2), so we can use the variance component to estimate 90% of the normal range-->
+$Var(\beta_{1}) =$ `r round(weight.summary$varFix[1, 1], 2)`  
+$Var(\beta_{2}) =$ `r round(weight.summary$varFix[2, 2], 2)`  
+$Corr(\beta_{1}, \beta_{2}) =$ `r round(weight.summary$corFixed[1, 2], 2)`  
+
+$Var(\beta_{1})$ and $Var(\beta_{2})$ show relatively low variance in population-averages estimates of weight at baseline and the change in weight over time. The correlation, $Corr(\beta_{1}, \beta_{2})$, is negative, indicating that, on average, higher weight at baseline leads to lower weight gain through time.
+
+#### c. Obtain and interpret the 90% normal range for trends over time in body weight among pigs in the population sampled (i.e. for the pig-specific random effects for trend over time).
+```{r}
+# Get random effects variance covariance matrix
+random.cov <- getVarCov(obj = weight.model)
+
+# Calculate standard deviation for random time effect
+time.sd <- sqrt(random.cov[2, 2])
+
+# Calculate 5% and 95% values from normal distribution
+range <- qnorm(p = c(0.05, 0.95), mean = 0, sd = time.sd)
+range <- round(range, 3)
+```
+
+Assume $b_{2} \sim N(0, \sigma^2_{b})$, where $\sigma^2_{b}$ is element $g_{22}$ in the G covariance matrix. In this example, $\sigma^2_{b} = g_{22} =$ `r round(random.cov[2, 2], 2)`. Using $N(0, `r round(random.cov[2, 2], 2)`)$, the 90% range of time effects among subjects is `r range[1]` to `r range[2]`. That is, 90% of the subjects should have a subject-specific per-week change in weight between `r range[1]` and `r range[2]` in addition to the population-average change in weight over time.
 
 ### 3. The investigator who provided the data is interested in designing a randomized clinical trial to evaluate an additive to the standard pig feed which might increase the rate of growth over time in bodyweight in pigs. He feels that an increase in bodyweight of 0.2 kg per week above that observed in the study for which the data are provided would be important, and would like to design a study to have 90% power to detect this increase using a two-sided 0.05 level of significance.
 #### a. What sample size would be needed in the randomized trial if the growth rate in the control group (without the additive) was the same as observed in the study for which the data are provided? Assume that the duration of the study from the first to last measurement is 8 weeks and that measurements are obtained every 4 weeks using the same technique as in the study for which the data are provided (so a measurement at times 0, 4 and 8 weeks). Also assume that equal numbers are randomized to each of the intervention (with the additive) and control groups and that the variance components observed in the study for which the data provided are reasonable choices for what would be found in the proposed trial. Show how you derived your answer.
+
+Define:  
+Effect size, $\delta =$ 0.2  
+Power, $1 - \gamma =$ 0.9  
+Significance, $\alpha =$ 0.05  
+Within-subject time effect variance, $\sigma^2_{\epsilon} =$ `r round(weight.summary$varFix[2, 2], 3)`  
+Between-subject time effect variance, $g_{22} =$ `r round(random.cov[2, 2], 3)`
+
 
 #### b. What do you notice about the data provided that could affect the sample size needed? Briefly justify your answer.
 
