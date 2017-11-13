@@ -56,7 +56,7 @@ mean.trajectories <- ggplot(data = mean.weights, mapping = aes(x = week, y = mea
   geom_line() +
   ylab(label = "Weight") +
   xlab(label = "Week") +
-  ggtitle(label = "Mean weights over time")
+  ggtitle(label = "Population mean weights over time")
 mean.trajectories
 ```
 
@@ -81,12 +81,39 @@ Where:
 weight.model <- lme(weight ~ week,
                     random = ~1 + week | ID,
                     data = long.data)
-
+weight.summary <- summary(weight.model)
 ```
 
 #### a. Obtain and interpret parameter estimates and associated 95% confidence intervals for the fixed effects in the model for the mean trajectory.
+
+To obtain the 95% confidence intervals, I used:
+
+$$
+95\% C.I. = \hat{\beta} \pm 1.96 \times SE
+$$
+
+```{r}
+# Retrieve estimates and standard errors for fixed effects
+betas <- data.frame(estimate = weight.summary$tTable[, 1], se = weight.summary$tTable[, 2])
+
+# Calculate 95% C.I.
+ci <- matrix(nrow = 2, ncol = 2)
+ci[1, ] <- c(betas[1, 1] + c(-1, 1) * 1.96 * betas[1, 2])
+ci[2, ] <- c(betas[2, 1] + c(-1, 1) * 1.96 * betas[2, 2])
+
+betas <- round(betas, 2)
+ci <- round(ci, 2)
+```
+
+| Coefficient | Estimate (CI) |
+|:-----------:|:-------------:|
+| $\beta_{1}$ | `r betas[1, 1]` (`r ci[1, 1]`, `r ci[1, 2]`)|
+| $\beta_{2}$ | `r betas[2, 1]` (`r ci[2, 1]`, `r ci[2, 2]`)|
+
 #### b. Obtain and interpret parameter estimates for the variances and correlation in the model.
 #### c. Obtain and interpret the 90% normal range for trends over time in body weight among pigs in the population sampled (i.e. for the pig-specific random effects for trend over time).
+
+<!-- Remember we are assuming b ~ N(0, sigma^2), so we can use the variance component to estimate 90% of the normal range-->
 
 ### 3. The investigator who provided the data is interested in designing a randomized clinical trial to evaluate an additive to the standard pig feed which might increase the rate of growth over time in bodyweight in pigs. He feels that an increase in bodyweight of 0.2 kg per week above that observed in the study for which the data are provided would be important, and would like to design a study to have 90% power to detect this increase using a two-sided 0.05 level of significance.
 #### a. What sample size would be needed in the randomized trial if the growth rate in the control group (without the additive) was the same as observed in the study for which the data are provided? Assume that the duration of the study from the first to last measurement is 8 weeks and that measurements are obtained every 4 weeks using the same technique as in the study for which the data are provided (so a measurement at times 0, 4 and 8 weeks). Also assume that equal numbers are randomized to each of the intervention (with the additive) and control groups and that the variance components observed in the study for which the data provided are reasonable choices for what would be found in the proposed trial. Show how you derived your answer.
