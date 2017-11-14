@@ -164,7 +164,7 @@ Because the measurements are taken at equally spaced times (specifically, four w
 
 ```{r}
 simplifyFunction <- function(tau, n) {
-  return(tau^2 * n * (n - 1))/(12 * (n - 1))
+  return(((tau^2) * n * (n - 1))/(12 * (n - 1)))
 }
 simplify <- simplifyFunction(tau = tau, n = n)
 ```
@@ -187,12 +187,12 @@ $$
 And using variance estimates from question 2, above, $\sigma^2_{\epsilon} =$ `r round(weight.summary$varFix[2, 2], 3)` and $g_{22} =$ `r round(random.cov[2, 2], 3)`:
 
 ```{r}
-var.comp <- round(weight.summary$varFix[2, 2]/simplify + random.cov[2, 2], 3)
+var.comp <- weight.summary$varFix[2, 2]/simplify + random.cov[2, 2]
 ```
 
 
 $$
-\sigma^2 = {{`r round(weight.summary$varFix[2, 2], 3)`}\over{`r simplify`}} + `r round(random.cov[2, 2], 3)` = `r var.comp`
+\sigma^2 = {{`r round(weight.summary$varFix[2, 2], 3)`}\over{`r simplify`}} + `r round(random.cov[2, 2], 3)` = `r round(var.comp, 3)`
 $$
 
 Substituting this value of $\sigma^2$ into our formula for sample size, along with $\delta$:
@@ -207,7 +207,7 @@ z.alpha <- qnorm(p = (1 - alpha/2))
 z.gamma <- qnorm(p = power.g)
 
 # Calculate sample size
-sample.size <- ( (z.alpha + z.gamma)^2 + var.comp^2 ) / delta^2
+sample.size <- ( (z.alpha + z.gamma)^2 * (2 * (var.comp^2)  ) ) / (delta^2)
 ```
 
 Finally, using the critical Z scores, $Z_{1 - \alpha/2} =$ `r round(z.alpha, 3)` and $Z_{1 - \gamma} =$ `r round(z.gamma, 3)`:
@@ -226,10 +226,97 @@ Second, the **design of the repeated measures** only had a duration of `r tau` w
 
 #### c. As the experimental additive is currently difficult to produce, the investigator is interested in knowing whether more frequent measurements or a longer study would markedly reduce the sample size. Develop a table which shows the sample size requirement if measurements were obtained every 4 weeks over an 8 week period (as done for part a), every 4 weeks over a 16 week period, every week over an 8 week period, or every week over a 16 week period. Briefly comment on any additional considerations that might be important in choosing among these four possible designs.
 
+Potential sampling designs:
+
+| Duration ($\tau$) | Interval (weeks) | Number of sampling points ($n$) |
+|:-----------------:|:----------------:|:-------------------------------:|
+| 8                 | 4                | `r round((8 / 4) + 1, 0)`       |
+| 8                 | 1                | `r round((8 / 1) + 1, 0)`       |
+| 16                | 4                | `r round((16 / 4) + 1, 0)`      |
+| 16                | 1                | `r round((16 / 1) + 1, 0)`      |
+
 ```{r}
-simplify <- simplifyFunction(tau = tau, n = n)
+sigma.e <- weight.summary$varFix[2, 2]
+g.22 <- random.cov[2, 2]
+sum.z.scores <- z.alpha + z.gamma
+
+sampleSize <- function(tau, n, sigma.e, g.22, delta, sum.z.scores) {
+  simplify <- simplifyFunction(tau = tau, n = n)
+  var.comp <- sigma.e/simplify + g.22
+  sample.size <- ( (sum.z.scores^2) * (2 * var.comp^2) ) / (delta^2)
+  return(sample.size)
+}
+
+designs <- data.frame(tau.values = c(8, 8, 16, 16),
+                      n.values = c(3, 9, 5, 17),
+                      sample.sizes = NA)
+
+for (i in 1:nrow(designs)) {
+  designs$sample.sizes[i] <- sampleSize(tau = designs$tau.values[i],
+                                        n = designs$n.values[i],
+                                        sigma.e = sigma.e,
+                                        g.22 = g.22,
+                                        delta = delta,
+                                        sum.z.scores = sum.z.scores)
+}
+
 ```
 
+But substituting values into the simplification equation (3), the four possible designs will effect the sample size by weighting the within-subject variance component ($\sigma^2_{\varepsilon}$) by:
+
+```{r design-1}
+design <- 1
+tau <- designs$tau.values[design]
+n <- designs$n.values[design]
+simplify <- simplifyFunction(tau = tau, n = n)
+```
+$\tau = `r tau`, \text{4 week intervals}, n = `r n`:$
+$$
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r simplify`
+$$
+```{r design-2}
+design <- 2
+tau <- designs$tau.values[design]
+n <- designs$n.values[design]
+simplify <- simplifyFunction(tau = tau, n = n)
+```
+$\tau = `r tau`, \text{1 week intervals}, n = `r n`:$
+$$
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r simplify`
+$$
+
+```{r design-3}
+design <- 3
+tau <- designs$tau.values[design]
+n <- designs$n.values[design]
+simplify <- simplifyFunction(tau = tau, n = n)
+```
+$\tau = `r tau`, \text{4 week intervals}, n = `r n`:$
+$$
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r round(simplify, 2)`
+$$
+
+```{r design-4}
+design <- 4
+tau <- designs$tau.values[design]
+n <- designs$n.values[design]
+simplify <- simplifyFunction(tau = tau, n = n)
+```
+$\tau = `r tau`, \text{1 week intervals}, n = `r n`:$
+$$
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r round(simplify, 2)`
+$$
+Using those values for scaling within-subject variance component in equation (2), and using those values for calculating sample size in equation (1), the designs would require the following sample sizes:
+
+| Duration  | 4 week | 1 week |
+|:----------|:------:|:------:|
+| 8 weeks   | `r round(designs$sample.sizes[1], 0)` | `r round(designs$sample.sizes[2], 0)` |
+| 16 weeks  | `r round(designs$sample.sizes[3], 0)` | `r round(designs$sample.sizes[4], 0)` |
+_Note_: These are per-group sample sizes. Given two groups, control and treatment, the total sample size of the experiments would need to be double these values.
+
+Assuming the value I used for within-subject variance ($\sigma^2_{\varepsilon}$) is correct (`r round(sigma.e, 3)`), changing the repeated measures design at the suggested scales would have relatively little influence on sample size. This is largely due to the difference in magnitude between within-subject variance ($\sigma^2_{\varepsilon} =$ `r round(sigma.e, 3)`) and between-subject variance ($g_{22} =$ `r round(g.22, 3)`). Because these components are added together in equation (2), and increasing duration or sample frequency only serves to _reduce_ the within-subject variance contribution to $\sigma^2$ of equation (1), the variance estimates $\sigma^2_{\varepsilon}$ and $g_{22}$ suggest alterations in the repeated measures design would have little influence on sample size. Indeed, even if within-subject variance ($\sigma^2_{\varepsilon}$) was zero, the required sample size would still be `r round(sampleSize(tau = 16, n = 17, sigma.e = 0, g.22 = g.22, delta = delta, sum.z.scores = sum.z.scores), 0)`, given a duration of 16 weeks with weekly sampling.
+
+Considering a larger effect size might be another way to reduce the sample size. If investigators were willing to test for an effect size of 0.4 kg, it would afford a sample size of only `r round(sampleSize(tau = 8, n = 3, sigma.e = sigma.e, g.22 = g.22, delta = (delta * 2), sum.z.scores = sum.z.scores), 0)` for an experiment of 8 weeks, sampling at 4 week intervals.
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd).
