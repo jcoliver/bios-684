@@ -152,25 +152,34 @@ n <- 3
 We can calculate the necessary group sample size with the formula:
 
 $$
-N = {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2\sigma^2}\over{\delta^2}}
+N = {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2\sigma^2}\over{\delta^2}}\tag{1}
 $$
 
 Where
 $$
-\sigma^2 = \sigma^2_{\epsilon}\left \{\sum_{j=1}^{n}(t_{j} - \bar{t})^2 \right \}^{-1} + g_{22}
+\sigma^2 = \sigma^2_{\epsilon}\left \{\sum_{j=1}^{n}(t_{j} - \bar{t})^2 \right \}^{-1} + g_{22}\tag{2}
 $$
 
 Because the measurements are taken at equally spaced times (specifically, four weeks), we can use this simplification (the length of the study, $\tau$ is `r tau` weeks):
 
 ```{r}
-simplify <- (tau^2 * n * (n - 1))/(12 * (n - 1))
+simplifyFunction <- function(tau, n) {
+  return(tau^2 * n * (n - 1))/(12 * (n - 1))
+}
+simplify <- simplifyFunction(tau = tau, n = n)
 ```
 
 $$
-\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{\tau^2n(n - 1)}\over{12(n - 1)}} = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r simplify`
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{\tau^2n(n - 1)}\over{12(n - 1)}}\tag{3}
+$$
+Substituting in the values of duration ($\tau =$ `r tau`) and number of measurement points ($n =$ `r n`):
+
+$$
+\sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r simplify`
 $$
 
-Recalling the variance component for sample size calculation, $\sigma^2$ and substituting values from the simplification above:
+
+Recalling the variance component for sample size calculation, $\sigma^2$ and substituting values from the simplification above into equation (2):
 $$
 \sigma^2 = \sigma^2_{\epsilon}\left \{\sum_{j=1}^{n}(t_{j} - \bar{t})^2 \right \}^{-1} + g_{22} = {{\sigma^2_{\epsilon}}\over{16}} + g_{22}
 $$
@@ -211,7 +220,16 @@ So, in order to detect an effect size of `r delta`, the investigator would need 
 
 #### b. What do you notice about the data provided that could affect the sample size needed? Briefly justify your answer.
 
+Assuming the probability of Type I and Type II errors cannot be changed, there are two notable aspects of the experiment that have a significant effect on sample size. The first is the **effect size** the investigator is interested in detecting ($\delta =$ `r delta`). Given that the observed effect of time on weight (question 2) was `r betas[2, 1]`, the investigator wants to detect a fairly small effect, `r delta`/`r betas[2, 1]`. That is, the investigator wants to be able to detect an effect of the additive on growth rate even if it only changes the rate of weight gain by `r round(100 * delta/betas[2, 1], 2)`%. If the investigator is willing to test for a larger effect size, therefore increasing $\delta$ in equation (1), the resulting calculation will result in a smaller sample size (because $\delta$ is in the denominator).
+
+Second, the **design of the repeated measures** only had a duration of `r tau` weeks and `r n` sampling points. If either of those could be increased, the necessary sample size to detect the desired effect size could be reduced. That is, as the magnitude of duration and the number of sampling points inversely affects the contribution of within-subjects variance ($\sigma^2_{\epsilon}$) in equation (2), increasing $\tau$ or $n$ will _decrease_ the influence of $\sigma^2_{\epsilon}$, and ultimately reduce the $2\sigma^2$ portion of equation (1) ($2\sigma^2$ is in the numerator). 
+
 #### c. As the experimental additive is currently difficult to produce, the investigator is interested in knowing whether more frequent measurements or a longer study would markedly reduce the sample size. Develop a table which shows the sample size requirement if measurements were obtained every 4 weeks over an 8 week period (as done for part a), every 4 weeks over a 16 week period, every week over an 8 week period, or every week over a 16 week period. Briefly comment on any additional considerations that might be important in choosing among these four possible designs.
+
+```{r}
+simplify <- simplifyFunction(tau = tau, n = n)
+```
+
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-6-oliver.Rmd).
