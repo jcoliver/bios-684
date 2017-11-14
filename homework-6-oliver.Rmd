@@ -61,7 +61,7 @@ mean.trajectories <- ggplot(data = mean.weights, mapping = aes(x = week, y = mea
 mean.trajectories
 ```
 
-Observations: All subjects have increasing weight through time, and the relationship appears linear for the time studied. There might be subject-specific intercepts and slopes, though; subjects that had low weight at baseline had potentially lower growth rates than did subjects with higher baseline weights. This potential difference in slopes may be contributing to increasing between-subject variance over time (heterogeneous variance).
+Observations: All subjects have increasing weight through time, and the relationship appears linear for the time studied. There might be subject-specific intercepts and slopes, though; subjects that had low weight at baseline had potentially lower growth rates than did subjects with higher baseline weights. This potential difference in slopes may be contributing to increasing between-subject variance over time (heterogeneous variance). There appears to be little variation in slopes within subjects over time.
 
 ### 2. Obtaining and Interpreting a Linear Mixed Effects Model for Bodyweight. Using PROC MIXED, fit a model for weight over (continuous) time which includes subject-specific intercepts and slopes as random effects.
 
@@ -74,8 +74,8 @@ Where:
 
 + $\beta_{1}$: the mean intercept across subjects
 + $\beta_{2}$: the mean slope across subjects
-+ $b_{1i}$: random (subject-specific) intercept
-+ $b_{2i}$: random (subject-specific) slope
++ $b_{1i}$: random (subject-specific) effect on intercept
++ $b_{2i}$: random (subject-specific) effect on slope
 
 ```{r}
 # lme model with random intercept and slope
@@ -147,7 +147,17 @@ alpha <- 0.05
 tau <- 8
 n <- 3
 ```
+_Note_: The answers and discussion that follow assume I have the correct value for within-subject time effect variance, $\sigma^2_{\epsilon} =$ `r round(weight.summary$varFix[2, 2], 3)`. I obtained this through the `varFix` element in the `summary.lme` object:
 
+```{r echo = TRUE, eval = FALSE}
+weight.model <- lme(weight ~ week,
+                    random = ~1 + week | ID,
+                    data = long.data)
+weight.summary <- summary(weight.model)
+within.var <- weight.summary$varFix[2, 2]
+```
+
+This concern is of most relevance to part (c), in considering sample size calculations for different repeated measures designs. I'm not entirely convinced I am using the right value, but for now I'll assume it is correct.
 
 We can calculate the necessary group sample size with the formula:
 
@@ -178,8 +188,7 @@ $$
 \sum_{j=1}^{n}(t_{j} - \bar{t})^2 = {{`r tau^2` \times `r n` \times `r n - 1`}\over{12 \times `r n - 1`}} = `r simplify`
 $$
 
-
-Recalling the variance component for sample size calculation, $\sigma^2$ and substituting values from the simplification above into equation (2):
+Recalling the variance component for sample size calculation, $\sigma^2$, and substituting values from the simplification above into equation (2):
 $$
 \sigma^2 = \sigma^2_{\epsilon}\left \{\sum_{j=1}^{n}(t_{j} - \bar{t})^2 \right \}^{-1} + g_{22} = {{\sigma^2_{\epsilon}}\over{16}} + g_{22}
 $$
@@ -198,7 +207,7 @@ $$
 Substituting this value of $\sigma^2$ into our formula for sample size, along with $\delta$:
 $$
 N = {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2\sigma^2}\over{\delta^2}} \\
-= {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2 \times `r var.comp`^2}\over{`r delta`^2}}
+= {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2 \times `r round(var.comp,2)`^2}\over{`r delta`^2}}
 $$
 
 ```{r}
@@ -212,8 +221,8 @@ sample.size <- ( (z.alpha + z.gamma)^2 * (2 * (var.comp^2)  ) ) / (delta^2)
 
 Finally, using the critical Z scores, $Z_{1 - \alpha/2} =$ `r round(z.alpha, 3)` and $Z_{1 - \gamma} =$ `r round(z.gamma, 3)`:
 $$
-N = {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2 \times `r var.comp`^2}\over{`r delta`^2}} \\
-= {{(`r round(z.alpha, 3)` + `r round(z.gamma, 3)`)^2 \times 2 \times `r var.comp`^2}\over{`r delta`^2}} \\
+N = {{(Z_{1 - \alpha/2} + Z_{1 - \gamma})^2 \times 2 \times `r round(var.comp,2)`^2}\over{`r delta`^2}} \\
+= {{(`r round(z.alpha, 3)` + `r round(z.gamma, 3)`)^2 \times 2 \times `r round(var.comp,2)`^2}\over{`r delta`^2}} \\
 = `r round(sample.size, 3)`
 $$
 So, in order to detect an effect size of `r delta`, the investigator would need `r round(sample.size, 0)` subjects in each group, or `r 2 * round(sample.size, 0)` total samples.
