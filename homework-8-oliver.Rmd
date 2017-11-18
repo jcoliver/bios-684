@@ -1,0 +1,114 @@
+---
+title: "Homework 8"
+subtitle: "BIOS 684"
+author: "Jeff Oliver"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  pdf_document:
+  latex_engine: xelatex
+---
+
+```{r setup, include=FALSE, fig.height = 4}
+knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
+library("dplyr")
+library("ggplot2")
+```
+
+***
+
+<!--
+Background:
+
+The Skin Cancer Prevention Study, a randomized, double-blind, placebo-controlled clinical trial, was designed to test the effectiveness of beta-carotene in the prevention of non-melanoma skin cancer in high-risk subjects. A total of 1,683 subjects were randomized to either placebo or 50mg of beta-carotene per day and were followed for up to 5 years. Subjects were examined once per year and biopsied if a cancer was suspected to determine the number of new cancers per year.
+The outcome variable, Y, is a count of the number of new skin cancers per year.
+
+Selected data from the study are in the dataset called “skin.txt” on the course web site. Each row of the dataset contains the following 9 variables: ID, Center, Age, Skin, Gender, Exposure, Y, Treatment, Year. These variables take values as follows:
+ID: Subject identifier number
+Center: Identifier number for center of enrollment.
+Age: Subject’s age in years at randomization
+Skin: Skin type (1=burns; 0 otherwise) [evaluated at randomization and doesn’t change with time]
+Gender: 1=male; 0=female
+Exposure: Count of number of previous skin cancers [prior to randomization]
+Y: Count of number of new skin cancers in the Year of follow-up
+Treatment: 1=beta-carotene; 0=placebo
+Year: Year of follow-up after starting randomized treatment
+
+You may assume that the counts of new skin cancers, Y, are from exact one-year periods (so that no offset term is needed).
+-->
+
+```{r read-data}
+# Read data
+skin.data <- read.delim(file = "data/skin.txt", sep = " ", header = FALSE)
+
+# Trim first & last columns (created by whitespace)
+skin.data <- skin.data[, -c(1, ncol(skin.data))]
+
+# Identify columns
+colnames(skin.data) <- c("id", "center", "age", "skin", "gender", "prior.count", "new.count", "treatment", "year")
+
+# Set factors as needed
+factor.cols <- c("id", "center", "skin", "gender", "treatment")
+for (c in factor.cols) {
+  skin.data[, c] <- factor(skin.data[, c])
+}
+```
+
+### 1. Your collaborator is interested in assessing the effect of treatment on the incidence of new skin cancers over time. As the statistician on the project, provide an analysis of the data that addresses this question. Please,
+#### i) Provide a short table providing a descriptive summary of the mean count of new skin cancers by Treatment for each Year. Briefly comment on changes in incidence of new skin cancers by randomized treatment over time.
+
+```{r descriptive-summary}
+skin.description <- skin.data %>%
+  group_by(treatment, year) %>%
+  summarize(mean.new.count = mean(new.count),
+            se.new.count = sd(new.count)/sqrt(length(new.count)))
+
+skin.table <- data.frame(year = skin.description$year[1:5],
+                         treat.0 = round(skin.description$mean.new.count[1:5], 3),
+                         treat.1 = round(skin.description$mean.new.count[6:10], 3))
+
+```
+
+| Year | Placebo | Beta-carotene |
+|:----:|:-------:|:-------------:|
+| `r skin.table$year[1]` | `r skin.table$treat.0[1]` | `r skin.table$treat.1[1]` |
+| `r skin.table$year[2]` | `r skin.table$treat.0[2]` | `r skin.table$treat.1[2]` |
+| `r skin.table$year[3]` | `r skin.table$treat.0[3]` | `r skin.table$treat.1[3]` |
+| `r skin.table$year[4]` | `r skin.table$treat.0[4]` | `r skin.table$treat.1[4]` |
+| `r skin.table$year[5]` | `r skin.table$treat.0[5]` | `r skin.table$treat.1[5]` |
+
+```{r descriptive-figure, fig.height = 3}
+means.plot <- ggplot(data = skin.description, mapping = aes(x = year, y = mean.new.count, color = treatment, group = treatment)) +
+  geom_errorbar(mapping = aes(x = year, ymin = (mean.new.count - se.new.count), ymax = (mean.new.count + se.new.count), width = 0.15)) +
+  geom_line() +
+  scale_color_manual(name = "Treatment", values = c("#000000", "#EC6E35"), labels = c("Placebo", "Beta-carotene")) +
+  xlab(label = "Year") +
+  ylab(label = "Mean new cancers")
+
+print(means.plot)
+
+```
+Note error bars are $\pm SE$, where $SE = \sigma/\sqrt{N}$.
+
+New incidences of skin cancer appear relatively constant in the placebo group, on average. In the beta-carotene group, the trend in mean new incidences of cancer seems to drop intially, followed by a rise from years two to four, then another drop between years four and five. However, the variance in the means, especially in the beta-carotene group, makes it difficult to argue for significant linear relationship between the number of new cancers and time.
+
+#### ii) Provide an algebraic definition for a generalized linear marginal Poisson regression model in which the only effects are for the intercept, Year (as a continuous variable) and trt*Year. Make sure you write out the full model. Provide a table of results that you obtain from fitting the model in SAS that includes the regression coefficient estimates, empirical standard errors 95% confidence interval, and p-value for testing the hypothesis that the true parameter is zero. What do you conclude from this model about the effect of treatment?
+
+Model for mean (link)
+Variance
+Correlation
+
+#### iii) Properly interpret each of the parameter estimates from your analysis in (ii) on the untransformed scale.
+
+#### iv) In the form of the results section of a scientific abstract (3 or 4 sentences), state with justification what you conclude about the effect of beta-carotene versus placebo based on your analysis.
+
+### 2. A secondary aim of the study was to evaluate risk factors for increased incidence of new skin cancers. To accomplish this goal,
+#### i) Fit an appropriate generalized linear marginal model in SAS which includes Year (a linear effect), Treatment, Center, Age, Skin, Gender and Exposure as covariates. Make sure you fully write out your chosen model.
+
+#### ii) Provide a table from your SAS output that includes parameter estimates, empirical standard errors and p-values.
+
+#### iii) In a short paragraph (<150 words), summarize the key findings from this model. 
+
+#### iv) Fit the model from 2(i) assuming there is no overdispersion (that is, the overdispersion parameter is equal to 1). Briefly describe the effect of this assumption on the results of the analysis.
+
+***
+The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd).
