@@ -12,6 +12,8 @@ output:
 knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("dplyr")
 library("ggplot2")
+library("gee")
+library("geepack")
 ```
 
 ***
@@ -79,6 +81,7 @@ skin.table <- data.frame(year = skin.description$year[1:5],
 ```{r descriptive-figure, fig.height = 3}
 means.plot <- ggplot(data = skin.description, mapping = aes(x = year, y = mean.new.count, color = treatment, group = treatment)) +
   geom_errorbar(mapping = aes(x = year, ymin = (mean.new.count - se.new.count), ymax = (mean.new.count + se.new.count), width = 0.15)) +
+  geom_point() +
   geom_line() +
   scale_color_manual(name = "Treatment", values = c("#000000", "#EC6E35"), labels = c("Placebo", "Beta-carotene")) +
   xlab(label = "Year") +
@@ -93,11 +96,68 @@ New incidences of skin cancer appear relatively constant in the placebo group, o
 
 #### ii) Provide an algebraic definition for a generalized linear marginal Poisson regression model in which the only effects are for the intercept, Year (as a continuous variable) and trt*Year. Make sure you write out the full model. Provide a table of results that you obtain from fitting the model in SAS that includes the regression coefficient estimates, empirical standard errors 95% confidence interval, and p-value for testing the hypothesis that the true parameter is zero. What do you conclude from this model about the effect of treatment?
 
-Model for mean (link)
-Variance
-Correlation
+Definition of the Poisson GLM:
+
+1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}(Year_{ij}-1) + \beta_{ij3}Treatment_{i} \times (Year_{ij}-1)$ (I used $Year - 1$ to make it easier to interpret coefficient estimates, so $Year - 1 = (0, 1, 2, 3, 4)$)
+2. Variance of response: $Var(Y_{ij}|X_{ij}) = \phi\mu_{ij}$
+3. Correlation structure: $Corr(Y_{ij}, Y_{ik}) = \alpha_{jk}$ (compound symmetric, or exchangable; autoregressive might also be appropriate, though)
+
+```{r simple-poisson-gee, include = FALSE}
+# For ease of interpretation, re-score year so it starts at zero
+skin.data$year <- skin.data$year - 1
+
+# Fit GEE Poisson model with exchangeable (compound symmetric) correlation
+simple.poisson.gee <- gee(new.count ~ year + treatment:year, # Use : syntax instead of * to suppress inclusion of treatment
+                          id = id,
+                          data = skin.data,
+                          family = poisson,
+                          corstr = "exchangeable")
+simple.poisson.summary <- summary(simple.poisson.gee)
+
+# Extract coefficient estimates
+model.coefficients <- data.frame(coef(object = simple.poisson.summary))
+
+# Calculate p-values from robust Z-scores
+model.coefficients$p.value <- 2 * pnorm(q = abs(model.coefficients[, "Robust.z"]), lower.tail = FALSE)
+model.coefficients$p.text <- as.character(round(model.coefficients$p.value, 3))
+model.coefficients$p.text[model.coefficients$p.value < 0.001] <- "< 0.001"
+
+# Calculate 95% C.I. from robust S.E.
+model.coefficients$ci.low <- model.coefficients$Estimate - 1.96 * model.coefficients$Robust.S.E.
+model.coefficients$ci.high <- model.coefficients$Estimate + 1.96 * model.coefficients$Robust.S.E.
+
+# Extract & round only those variables we need
+results.table <- data.frame(estimate = round(model.coefficients$Estimate, 3),
+                            ci.low = round(model.coefficients$ci.low, 3),
+                            ci.high = round(model.coefficients$ci.high, 3),
+                            p.text = model.coefficients$p.text)
+rownames(results.table) <- rownames(model.coefficients)
+```
+
+Results of analysis with `gee`:
+
+| Coefficient | Covariate               | Estimate (95% CI)           | Pr($\beta = 0$) |
+|:-----------:|:------------------------|:---------------------------:|:---------------:|
+| $\beta_{1}$ | Intercept               | `r results.table$estimate[1]` (`r results.table$ci.low[1]`, `r results.table$ci.high[1]`) | `r results.table$p.text[1]` |
+| $\beta_{2}$ | Year                    | `r results.table$estimate[2]` (`r results.table$ci.low[2]`, `r results.table$ci.high[2]`) | `r results.table$p.text[2]` |
+| $\beta_{3}$ | Year $\times$ Treatment | `r results.table$estimate[3]` (`r results.table$ci.low[3]`, `r results.table$ci.high[3]`) | `r results.table$p.text[3]` |
+Note the 95% confidence interval is based on the empirical (or 'robust' in `gee` parlance) standard errors.
+
+In this analysis, treatment does not appear to influence the rate of change in the mean number of new cancers. That is, the effect of time on the mean number of new cancers does not appear significantly different between subjects in the placebo group and those in the beta-carotene group.
 
 #### iii) Properly interpret each of the parameter estimates from your analysis in (ii) on the untransformed scale.
+
+```{r simple-coeff-interpretation}
+
+change <- "decreases"
+if (results.table$estimate[2] > 0) {
+  change <- "increases"
+}
+```
+
+1. $e^{\beta_{1}}$ : The expected number of new cancers in subjects in the placebo group after one year. 
+2. $e^{\beta_{2}(Year - 1)}$ : Factor by which the average number of new cancers changes each year in the study for subjects in the placebo group. i.e. each year the average number of new cancers `r change` by a factor of `r abs(results.table$estimate[2])`, or `r 100 * abs(results.table$estimate[2])`% in subjects in the placebo group. **TODO** CHECK THIS.
+
 
 #### iv) In the form of the results section of a scientific abstract (3 or 4 sentences), state with justification what you conclude about the effect of beta-carotene versus placebo based on your analysis.
 
