@@ -172,12 +172,44 @@ if (results.table$estimate[3] > 0) {
 
 Definition of the Poisson GLM:
 
-# TODO: FIX THIS MODEL CONSIDERING CATEGORICAL VARIABLES (Treatment, Center, Skin, Gender)
-
-1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} + \beta_{ij4}Center_{i} + \beta_{ij5}Age_{i} + \beta_{ij6}Skin_{i} + \beta_{ij7}Gender_{i} + \beta_{ij8}Exposure_{i}$, where
-    + Year = {1, 2, 3, 4, 5}
-    + Treatment = 0 if placebo, 1 if beta-carotene
-    + ## TODO: define remaining covariates
+1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} + \beta_{ij4}Center_{2i} + \beta_{ij5}Center_{3i} + \beta_{ij6}Center_{4i} + \beta_{ij7}Age_{i} + \beta_{ij8}Skin_{i} + \beta_{ij9}Gender_{i} + \beta_{ij10}Exposure_{i}$, where
+$$
+\begin{array}{l}
+  Year_{ij} = \{1, 2, 3, 4, 5\} \\
+  Treatment_{i} = 
+    \begin{cases}
+      0, & \text{Placebo} \\
+      1, & \beta\text{-carotene}
+    \end{cases} \\
+  Center_{2i} = 
+    \begin{cases}
+      0, & \text{Not enrolled at center 2} \\
+      1, & \text{Enrolled at center 2}
+    \end{cases} \\
+  Center_{3i} = 
+    \begin{cases}
+      0, & \text{Not enrolled at center 3} \\
+      1, & \text{Enrolled at center 3}
+    \end{cases} \\
+  Center_{4i} = 
+    \begin{cases}
+      0, & \text{Not enrolled at center 4} \\
+      1, & \text{Enrolled at center 4}
+    \end{cases} \\
+  Age_{i} = \text{Age at randomization} \\
+  Skin_{i} = 
+    \begin{cases}
+      0, & \text{No burns} \\
+      1, & \text{Burns}
+    \end{cases} \\
+  Gender_{i} = 
+    \begin{cases}
+      0, & \text{Female} \\
+      1, & \text{Male}
+    \end{cases} \\
+  Exposure_{i} = \text{Number of previous skin cancers prior to randomization} \\
+\end{array}
+$$
 2. Variance of response: $Var(Y_{ij}|X_{ij}) = \phi\mu_{ij}$
 3. Correlation structure: $Corr(Y_{ij}, Y_{ik}) = \alpha_{jk}$ (compound symmetric, or exchangable; autoregressive might also be appropriate, though)
 
@@ -223,6 +255,7 @@ rownames(risk.results.table) <- rownames(risk.model.coefficients)
 Note p-values are based on the Empirical ("Robust") S.E. Z-scores.
 
 #### iii) In a short paragraph (<150 words), summarize the key findings from this model. 
+In an analysis of several potential risk factors in the rate of new melanoma skin cancers, three factors had no significant effects while six significantly increased the number of new cancers. Specifically, when controlling for other factors, the average number of new cancers was not affected by time, treatment with $\beta$-carotene, or whether the subject had a skin type susceptible to burns. In contrast, controlling for other factors, subjects enrolled at Center #2 had, on average, higher number of new cancers than subjects enrolled at Center #1 by a factor of `r round(exp(risk.results.table$estimate[4]), 3)`. Similar differences in the average number of new cancers, controlling for other covariates, were significantly different between subjects enrolled at Center #3 and Center #1 (higher in Center #3 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[5])), 2)`%) and between subjects enrolled at Center #4 and Center #1 (higher in Center #4 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[6])), 2)`%). Additionally, controlling for other covariates, age at randomization also significantly affected the average number of new cancers; for each year of age, the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[7]), 3)`. The average number of new cancers was also higher in males than females by `r round(100 * abs(1 - exp(risk.results.table$estimate[9])), 2)`%, when controlling for other covariates. Finally, the number of cancers prior to randomization had a significant effect on the average number of new cancers when controlling for other risk factors; the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[10]), 3)` for each cancer measured prior to randomization. (Yes, quite a bit longer than 150 words!)
 
 #### iv) Fit the model from 2(i) assuming there is no overdispersion (that is, the overdispersion parameter is equal to 1). Briefly describe the effect of this assumption on the results of the analysis.
 
