@@ -220,6 +220,8 @@ rownames(risk.results.table) <- rownames(risk.model.coefficients)
 | $\beta_{9}$  | Gender (male) | `r risk.results.table$estimate[9]`  | `r risk.results.table$se[9]`  | `r risk.results.table$p.text[9]`  |
 | $\beta_{10}$ | Exposure      | `r risk.results.table$estimate[10]` | `r risk.results.table$se[10]` | `r risk.results.table$p.text[10]` |
 
+Note p-values are based on the Empirical ("Robust") S.E. Z-scores.
+
 #### iii) In a short paragraph (<150 words), summarize the key findings from this model. 
 
 #### iv) Fit the model from 2(i) assuming there is no overdispersion (that is, the overdispersion parameter is equal to 1). Briefly describe the effect of this assumption on the results of the analysis.
@@ -267,9 +269,36 @@ gee.model <- gee(new.count ~ year + treatment + center + age + skin + gender + p
                  scale.value = 1)
 ```
 
-I found no difference in parameter estimates _or_ standard errors (and therefore Z and p scores) between the original model, accounting for overdispersion (estimated $\phi = `r round(risk.poisson.gee$scale, 3)`$), and the model where I ignored overdispersion (fixed $\phi = 1$).
+```{r compare-naive-errors}
+risk.naive <- risk.model.coefficients[, c("Naive.S.E.", "Naive.z")]
+risk.naive$p.value <- 2 * pnorm(q = abs(risk.naive$Naive.z), lower.tail = FALSE)
+risk.naive$p.text <- as.character(round(risk.naive$p.value, 3))
+risk.naive$p.text[risk.naive$p.value < 0.001] <- "< 0.001"
 
-# TODO: Add table of estimates et al.
+no.overdispersion.naive <- no.overdispersion.model.coefficients[, c("Naive.S.E.", "Naive.z")]
+no.overdispersion.naive$p.value <- 2 * pnorm(q = abs(no.overdispersion.naive$Naive.z), lower.tail = FALSE)
+no.overdispersion.naive$p.text <- as.character(round(no.overdispersion.naive$p.value, 3))
+no.overdispersion.naive$p.text[no.overdispersion.naive$p.value < 0.001] <- "< 0.001"
+```
+
+I found no difference in _empirical_ ("robust") parameter estimates _or_ standard errors (and therefore Z and p scores) between the original model, accounting for overdispersion (estimated $\phi = `r round(risk.poisson.gee$scale, 3)`$), and the model where I ignored overdispersion (fixed $\phi = `r no.overdispersion.gee$scale`$). However, the _model-based_ ("naive") estimates did differ slightly between the two approaches. When overdispersion was ignored ($\phi = `r no.overdispersion.gee$scale`$), model-based standard errors for coefficient estimates were all lower than the corresponding standard errors in the model accounting for overdispersion ($\phi = `r round(risk.poisson.gee$scale, 3)`$). This, in turn, resulted in greater magnitude Z-scores in model-based parameter estimates in the model ignoring overdispersion relative to the model accommodating overdispersion. 
+
+Considering the model-based (not empirical) $\beta$ estimates' corresponding p-values:
+
+| Coefficient  | Covariate     | $\phi = `r round(risk.poisson.gee$scale, 3)`$ | $\phi = `r round(no.overdispersion.gee$scale, 3)`$ |
+|:------------:|:--------------|:---------------------------------------------:|:-----------------------------:|:------------------:|
+| $\beta_{1}$  | Intercept     | `r risk.naive$p.text[1]`                      | `r no.overdispersion.naive$p.text[1]`              |
+| $\beta_{2}$  | Year          | `r risk.naive$p.text[2]`                      | `r no.overdispersion.naive$p.text[2]`              |
+| $\beta_{3}$  | Treatment ($\beta$-carotene) | `r risk.naive$p.text[3]`       | `r no.overdispersion.naive$p.text[3]`              |
+| $\beta_{4}$  | Center (= 2)  | `r risk.naive$p.text[4]`                      | `r no.overdispersion.naive$p.text[4]`              |
+| $\beta_{5}$  | Center (= 3)  | `r risk.naive$p.text[5]`                      | `r no.overdispersion.naive$p.text[5]`              |
+| $\beta_{6}$  | Center (= 4)  | `r risk.naive$p.text[6]`                      | `r no.overdispersion.naive$p.text[6]`              |
+| $\beta_{7}$  | Age           | `r risk.naive$p.text[7]`                      | `r no.overdispersion.naive$p.text[7]`              |
+| $\beta_{8}$  | Skin (burns)  | `r risk.naive$p.text[8]`                      | `r no.overdispersion.naive$p.text[8]`              |
+| $\beta_{9}$  | Gender (male) | `r risk.naive$p.text[9]`                      | `r no.overdispersion.naive$p.text[9]`              |
+| $\beta_{10}$ | Exposure      | `r risk.naive$p.text[10]`                     | `r no.overdispersion.naive$p.text[10]`             |
+
+Note that in most cases, there is no qualitative difference between models that do and do not account for overdispersion. However, there was one covariate (Skin) that had a marginally significant effect on the average number of new cancers (p = `r risk.naive$p.text[8]`) in the model where overdispersion was accounted for. In contrast, this covariate had a _significant_ effect on the average number of new cancers (p = `r no.overdispersion.naive$p.text[8]`) in the model ignoring overdispersion.
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd).
