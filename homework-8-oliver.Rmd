@@ -165,14 +165,111 @@ if (results.table$estimate[3] > 0) {
 
 #### iv) In the form of the results section of a scientific abstract (3 or 4 sentences), state with justification what you conclude about the effect of beta-carotene versus placebo based on your analysis.
 
+## TODO
+
 ### 2. A secondary aim of the study was to evaluate risk factors for increased incidence of new skin cancers. To accomplish this goal,
 #### i) Fit an appropriate generalized linear marginal model in SAS which includes Year (a linear effect), Treatment, Center, Age, Skin, Gender and Exposure as covariates. Make sure you fully write out your chosen model.
 
+Definition of the Poisson GLM:
+
+# TODO: FIX THIS MODEL CONSIDERING CATEGORICAL VARIABLES (Treatment, Center, Skin, Gender)
+
+1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} + \beta_{ij4}Center_{i} + \beta_{ij5}Age_{i} + \beta_{ij6}Skin_{i} + \beta_{ij7}Gender_{i} + \beta_{ij8}Exposure_{i}$, where
+    + Year = {1, 2, 3, 4, 5}
+    + Treatment = 0 if placebo, 1 if beta-carotene
+    + ## TODO: define remaining covariates
+2. Variance of response: $Var(Y_{ij}|X_{ij}) = \phi\mu_{ij}$
+3. Correlation structure: $Corr(Y_{ij}, Y_{ik}) = \alpha_{jk}$ (compound symmetric, or exchangable; autoregressive might also be appropriate, though)
+
 #### ii) Provide a table from your SAS output that includes parameter estimates, empirical standard errors and p-values.
+
+```{r risk-factors-poisson-gee, include = FALSE}
+# Fit GEE Poisson model with exchangeable (compound symmetric) correlation
+risk.poisson.gee <- gee(new.count ~ year + treatment + center + age + skin + gender + prior.count,
+                        id = id,
+                        data = skin.data,
+                        family = poisson,
+                        corstr = "exchangeable")
+risk.poisson.summary <- summary(risk.poisson.gee)
+
+# Extract coefficient estimates & standard errors
+risk.model.coefficients <- data.frame(coef(object = risk.poisson.summary))
+
+# Calculate p-values from robust Z-scores
+risk.model.coefficients$p.value <- 2 * pnorm(q = abs(risk.model.coefficients[, "Robust.z"]), lower.tail = FALSE)
+risk.model.coefficients$p.text <- as.character(round(risk.model.coefficients$p.value, 3))
+risk.model.coefficients$p.text[risk.model.coefficients$p.value < 0.001] <- "< 0.001"
+
+# Extract & round only those variables we need
+risk.results.table <- data.frame(estimate = round(risk.model.coefficients$Estimate, 3),
+                            se = round(risk.model.coefficients$Robust.S.E., 3),
+                            p.text = risk.model.coefficients$p.text)
+rownames(risk.results.table) <- rownames(risk.model.coefficients)
+```
+
+| Coefficient  | Covariate     | Estimate                            | Empirical S.E.                | Pr($\beta = 0$)                   |
+|:------------:|:--------------|:-----------------------------------:|:-----------------------------:|:---------------------------------:|
+| $\beta_{1}$  | Intercept     | `r risk.results.table$estimate[1]`  | `r risk.results.table$se[1]`  | `r risk.results.table$p.text[1]`  |
+| $\beta_{2}$  | Year          | `r risk.results.table$estimate[2]`  | `r risk.results.table$se[2]`  | `r risk.results.table$p.text[2]`  |
+| $\beta_{3}$  | Treatment ($\beta$-carotene) | `r risk.results.table$estimate[3]`  | `r risk.results.table$se[3]`  | `r risk.results.table$p.text[3]`  |
+| $\beta_{4}$  | Center (= 2)  | `r risk.results.table$estimate[4]`  | `r risk.results.table$se[4]`  | `r risk.results.table$p.text[4]`  |
+| $\beta_{5}$  | Center (= 3)  | `r risk.results.table$estimate[5]`  | `r risk.results.table$se[5]`  | `r risk.results.table$p.text[5]`  |
+| $\beta_{6}$  | Center (= 4)  | `r risk.results.table$estimate[6]`  | `r risk.results.table$se[6]`  | `r risk.results.table$p.text[6]`  |
+| $\beta_{7}$  | Age           | `r risk.results.table$estimate[7]`  | `r risk.results.table$se[7]`  | `r risk.results.table$p.text[7]`  |
+| $\beta_{8}$  | Skin (burns)  | `r risk.results.table$estimate[8]`  | `r risk.results.table$se[8]`  | `r risk.results.table$p.text[8]`  |
+| $\beta_{9}$  | Gender (male) | `r risk.results.table$estimate[9]`  | `r risk.results.table$se[9]`  | `r risk.results.table$p.text[9]`  |
+| $\beta_{10}$ | Exposure      | `r risk.results.table$estimate[10]` | `r risk.results.table$se[10]` | `r risk.results.table$p.text[10]` |
 
 #### iii) In a short paragraph (<150 words), summarize the key findings from this model. 
 
 #### iv) Fit the model from 2(i) assuming there is no overdispersion (that is, the overdispersion parameter is equal to 1). Briefly describe the effect of this assumption on the results of the analysis.
+
+This model differs from that defined in 2(i) only in the specification of variance of the mean response:
+
+2. Variance of response: $Var(Y_{ij}|X_{ij}) = \phi\mu_{ij}$, where $\phi = 1$
+
+The model in 2(i) does not constrain $\phi$, and, in fact, the estimated scale parameter was `r round(risk.poisson.gee$scale, 3)`.
+
+```{r ignore-overdispersion-poisson-gee, include = FALSE}
+# Fit GEE Poisson model with exchangeable (compound symmetric) correlation and assume no overdispersion
+no.overdispersion.gee <- gee(new.count ~ year + treatment + center + age + skin + gender + prior.count,
+                        id = id,
+                        data = skin.data,
+                        family = poisson,
+                        corstr = "exchangeable",
+                        scale.fix = TRUE,
+                        scale.value = 1)
+no.overdispersion.summary <- summary(no.overdispersion.gee)
+
+# Extract coefficient estimates & standard errors
+no.overdispersion.model.coefficients <- data.frame(coef(object = no.overdispersion.summary))
+
+# Calculate p-values from robust Z-scores
+no.overdispersion.model.coefficients$p.value <- 2 * pnorm(q = abs(no.overdispersion.model.coefficients[, "Robust.z"]), lower.tail = FALSE)
+no.overdispersion.model.coefficients$p.text <- as.character(round(no.overdispersion.model.coefficients$p.value, 3))
+no.overdispersion.model.coefficients$p.text[no.overdispersion.model.coefficients$p.value < 0.001] <- "< 0.001"
+
+# Extract & round only those variables we need
+no.overdispersion.results.table <- data.frame(estimate = round(no.overdispersion.model.coefficients$Estimate, 3),
+                            se = round(no.overdispersion.model.coefficients$Robust.S.E., 3),
+                            p.text = no.overdispersion.model.coefficients$p.text)
+rownames(no.overdispersion.results.table) <- rownames(no.overdispersion.model.coefficients)
+```
+
+Using the following specification setting `scale.fix = TRUE` and `scale.value = 1` in the call to `gee` (`prior.count` is what I called the 'Exposure' covariate and `new.count` is the response, Y):
+```{r gee-example-code, eval = FALSE, echo = TRUE}
+gee.model <- gee(new.count ~ year + treatment + center + age + skin + gender + prior.count,
+                 id = id,
+                 data = skin.data,
+                 family = poisson,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE,
+                 scale.value = 1)
+```
+
+I found no difference in parameter estimates _or_ standard errors (and therefore Z and p scores) between the original model, accounting for overdispersion (estimated $\phi = `r round(risk.poisson.gee$scale, 3)`$), and the model where I ignored overdispersion (fixed $\phi = 1$).
+
+# TODO: Add table of estimates et al.
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/homework-8-oliver.Rmd).
