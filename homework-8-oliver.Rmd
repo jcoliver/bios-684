@@ -70,7 +70,7 @@ skin.table <- data.frame(year = skin.description$year[1:5],
 
 ```
 
-| Year | Placebo | Beta-carotene |
+| Year | Placebo | $\beta$-carotene |
 |:----:|:-------:|:-------------:|
 | `r skin.table$year[1]` | `r skin.table$treat.0[1]` | `r skin.table$treat.1[1]` |
 | `r skin.table$year[2]` | `r skin.table$treat.0[2]` | `r skin.table$treat.1[2]` |
@@ -92,15 +92,15 @@ print(means.plot)
 ```
 Note error bars are $\pm SE$, where $SE = \sigma/\sqrt{N}$.
 
-New incidences of skin cancer appear relatively constant in the placebo group, on average. In the beta-carotene group, the trend in mean new incidences of cancer seems to drop intially, followed by a rise from years two to four, then another drop between years four and five. However, the variance in the means, especially in the beta-carotene group, makes it difficult to argue for significant linear relationship between the number of new cancers and time.
+New incidences of skin cancer appear relatively constant in the placebo group, on average. In the $\beta$-carotene group, the trend in mean new incidences of cancer seems to drop intially, followed by a rise from years two to four, then another drop between years four and five. However, the variance in the means, especially in the $\beta$-carotene group, makes it difficult to argue for significant linear relationship between the number of new cancers and time.
 
 #### ii) Provide an algebraic definition for a generalized linear marginal Poisson regression model in which the only effects are for the intercept, Year (as a continuous variable) and trt*Year. Make sure you write out the full model. Provide a table of results that you obtain from fitting the model in SAS that includes the regression coefficient estimates, empirical standard errors 95% confidence interval, and p-value for testing the hypothesis that the true parameter is zero. What do you conclude from this model about the effect of treatment?
 
-Definition of the Poisson GLM:
+Definition of the Poisson generalized linear marginal model:
 
 1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} \times Year_{ij}$, where
     + Year = {1, 2, 3, 4, 5}
-    + Treatment = 0 if placebo, 1 if beta-carotene
+    + Treatment = 0 if placebo, 1 if $\beta$-carotene
 2. Variance of response: $Var(Y_{ij}|X_{ij}) = \phi\mu_{ij}$
 3. Correlation structure: $Corr(Y_{ij}, Y_{ik}) = \alpha_{jk}$ (compound symmetric, or exchangable; autoregressive might also be appropriate, though)
 
@@ -142,7 +142,7 @@ Results of analysis with `gee`:
 | $\beta_{3}$ | Year $\times$ Treatment | `r results.table$estimate[3]` (`r results.table$ci.low[3]`, `r results.table$ci.high[3]`) | `r results.table$p.text[3]` |
 Note the 95% confidence interval is based on the empirical (or 'robust' in `gee` parlance) standard errors.
 
-In this analysis, treatment does not appear to influence the rate of change in the mean number of new cancers. That is, the effect of time on the mean number of new cancers does not appear significantly different between subjects in the placebo group and those in the beta-carotene group.
+In this analysis, treatment does not appear to influence the rate of change in the mean number of new cancers. That is, the effect of time on the mean number of new cancers does not appear significantly different between subjects in the placebo group and those in the $\beta$-carotene group (`r results.table$p.text[3]`).
 
 #### iii) Properly interpret each of the parameter estimates from your analysis in (ii) on the untransformed scale.
 
@@ -166,18 +166,18 @@ if (results.table$estimate[3] > 0) {
 
 1. $e^{\beta_{1}}$ : The expected number of new cancers in subjects before randomization (year zero). This value, $e^{\beta_{1}} =$ e^`r results.table$estimate[1]`^ = `r round(exp(results.table$estimate[1]), 3)` is regardless of treatment (placebo or $\beta$-carotene).
 2. $e^{\beta_{2}}$ : Factor by which the average number of new cancers changes each year in the study for subjects in the placebo group. i.e. each year the average number of new cancers changes by a factor of $e^{\beta_{2}}$ = `r round(exp(results.table$estimate[2]), 3)`, or `r change` by `r 100 * round(abs(1 - exp(results.table$estimate[2])), 3)`%, in subjects in the placebo group.
-3. $e^{\beta_{3}}$ : The difference in the expected annual change in the number of new cancers between subjects in the placebo group and subjects in the beta-carotene group. That is, the annual change in average number of new cancers in subjects in the beta-carotene group is `r b.c.diff` than subjects in the placebo group by a factor of `r round(exp(results.table$estimate[3]), 3)`. Interpretation of this coefficient is most informative with considered in context of $\beta_{2}$. The average number of new cancers in placebo subjects `r change` by a factor of $e^{\beta_{2}}$ = `r round(exp(results.table$estimate[2]), 3)` each year. In contrast, the average number of new cancers in beta-carotene subjects `r b.c.change` by a factor of $e^{\beta_{2} + \beta_{3}}$ = `r round(exp(results.table$estimate[2] + results.table$estimate[3]), 3)`, or `r round(abs(1 - exp(results.table$estimate[2] + results.table$estimate[3])), 3)`%, each year.
+3. $e^{\beta_{3}}$ : The difference in the expected annual change in the number of new cancers between subjects in the placebo group and subjects in the $\beta$-carotene group. That is, the annual change in average number of new cancers in subjects in the $\beta$-carotene group is `r b.c.diff` than subjects in the placebo group by a factor of `r round(exp(results.table$estimate[3]), 3)`. Interpretation of this coefficient is most informative with considered in context of $\beta_{2}$. The average number of new cancers in placebo subjects changes by a factor of $e^{\beta_{2}}$ = `r round(exp(results.table$estimate[2]), 3)` each year. In contrast, the average number of new cancers in $\beta$-carotene subjects changes by a factor of $e^{\beta_{2} + \beta_{3}}$ = `r round(exp(results.table$estimate[2] + results.table$estimate[3]), 3)`, or `r b.c.change` by `r round(abs(1 - exp(results.table$estimate[2] + results.table$estimate[3])), 3)`%, each year.
 
 #### iv) In the form of the results section of a scientific abstract (3 or 4 sentences), state with justification what you conclude about the effect of beta-carotene versus placebo based on your analysis.
-
-## TODO
+In a generalized linear marginal model, using a log Poisson model, we found little evidence of an effect of treatment of $\beta$-carotene on the incidence of new non-melanoma skin cancers. Treatment with $\beta$-carotene increased the average number of new cancers per year by a factor of `r round(exp(results.table$estimate[3]), 3)`, or an increase of `r round(abs(1 - exp(results.table$estimate[2] + results.table$estimate[3])), 3)`% per year as compared to subjects in the placebo group, which, on average, demonstrated a decrease of `r round(abs(1 - exp(results.table$estimate[2])), 3)`% in the number of new cancers per year. However, this effect was not significant (p = `r results.table$p.text[3]`), indicating treatment with $\beta$-carotene does not likely affect the rate of new cancer growth, at least for the time scale of this study (1-5 years).
 
 ### 2. A secondary aim of the study was to evaluate risk factors for increased incidence of new skin cancers. To accomplish this goal,
 #### i) Fit an appropriate generalized linear marginal model in SAS which includes Year (a linear effect), Treatment, Center, Age, Skin, Gender and Exposure as covariates. Make sure you fully write out your chosen model.
 
-Definition of the Poisson GLM:
+Definition of the Poisson generalized linear marginal model:
 
-1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} + \beta_{ij4}Center_{2i} + \beta_{ij5}Center_{3i} + \beta_{ij6}Center_{4i} + \beta_{ij7}Age_{i} + \beta_{ij8}Skin_{i} + \beta_{ij9}Gender_{i} + \beta_{ij10}Exposure_{i}$, where
+1. Distribution of response: $log(\mu_{ij}) = \beta_{1} + \beta_{ij2}Year_{ij} + \beta_{ij3}Treatment_{i} + \beta_{ij4}Center_{2i} + \beta_{ij5}Center_{3i} + \beta_{ij6}Center_{4i} + \beta_{ij7}Age_{i} + \beta_{ij8}Skin_{i} + \beta_{ij9}Gender_{i} + \beta_{ij10}Exposure_{i}$  
+Where:
 $$
 \begin{array}{l}
   Year_{ij} = \{1, 2, 3, 4, 5\} \\
@@ -260,7 +260,7 @@ rownames(risk.results.table) <- rownames(risk.model.coefficients)
 Note p-values are based on the Empirical ("Robust") S.E. Z-scores.
 
 #### iii) In a short paragraph (<150 words), summarize the key findings from this model. 
-In an analysis of several potential risk factors in the rate of new melanoma skin cancers, three factors had no significant effects while six significantly increased the number of new cancers. Specifically, when controlling for other factors, the average number of new cancers was not affected by time, treatment with $\beta$-carotene, or whether the subject had a skin type susceptible to burns. In contrast, controlling for other factors, subjects enrolled at Center #2 had, on average, higher number of new cancers than subjects enrolled at Center #1 by a factor of `r round(exp(risk.results.table$estimate[4]), 3)`. Similar differences in the average number of new cancers, controlling for other covariates, were significantly different between subjects enrolled at Center #3 and Center #1 (higher in Center #3 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[5])), 2)`%) and between subjects enrolled at Center #4 and Center #1 (higher in Center #4 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[6])), 2)`%). Additionally, controlling for other covariates, age at randomization also significantly affected the average number of new cancers; for each year of age, the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[7]), 3)`. The average number of new cancers was also higher in males than females by `r round(100 * abs(1 - exp(risk.results.table$estimate[9])), 2)`%, when controlling for other covariates. Finally, the number of cancers prior to randomization had a significant effect on the average number of new cancers when controlling for other risk factors; the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[10]), 3)` for each cancer measured prior to randomization. (Yes, quite a bit longer than 150 words!)
+In an analysis of several potential risk factors in the rate of new melanoma skin cancers, three factors had no significant effects while six significantly increased the average number of new cancers. Specifically, when controlling for other factors, the average number of new cancers was not affected by time, treatment with $\beta$-carotene, or whether the subject had a skin type susceptible to burns. In contrast, controlling for other factors, subjects enrolled at Center #2 had, on average, higher number of new cancers than subjects enrolled at Center #1 by a factor of `r round(exp(risk.results.table$estimate[4]), 3)`. Similar differences in the average number of new cancers, controlling for other covariates, were significantly different between subjects enrolled at Center #3 and Center #1 (higher in Center #3 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[5])), 2)`%) and between subjects enrolled at Center #4 and Center #1 (higher in Center #4 subjects by `r round(100 * abs(1 - exp(risk.results.table$estimate[6])), 2)`%). Additionally, controlling for other covariates, age at randomization also significantly affected the average number of new cancers; for each year of age, the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[7]), 3)`. The average number of new cancers was also higher in males than females by `r round(100 * abs(1 - exp(risk.results.table$estimate[9])), 2)`%, when controlling for other covariates. Finally, the number of cancers prior to randomization had a significant effect on the average number of new cancers when controlling for other risk factors; the average number of new cancers increased by a factor of `r round(exp(risk.results.table$estimate[10]), 3)` for each cancer measured prior to randomization. (Yes, quite a bit longer than 150 words!)
 
 #### iv) Fit the model from 2(i) assuming there is no overdispersion (that is, the overdispersion parameter is equal to 1). Briefly describe the effect of this assumption on the results of the analysis.
 
@@ -319,7 +319,7 @@ no.overdispersion.naive$p.text <- as.character(round(no.overdispersion.naive$p.v
 no.overdispersion.naive$p.text[no.overdispersion.naive$p.value < 0.001] <- "< 0.001"
 ```
 
-I found no difference in _empirical_ ("robust") parameter estimates _or_ standard errors (and therefore Z and p scores) between the original model, accounting for overdispersion (estimated $\phi = `r round(risk.poisson.gee$scale, 3)`$), and the model where I ignored overdispersion (fixed $\phi = `r no.overdispersion.gee$scale`$). However, the _model-based_ ("naive") estimates did differ slightly between the two approaches. When overdispersion was ignored ($\phi = `r no.overdispersion.gee$scale`$), model-based standard errors for coefficient estimates were all lower than the corresponding standard errors in the model accounting for overdispersion ($\phi = `r round(risk.poisson.gee$scale, 3)`$). This, in turn, resulted in greater magnitude Z-scores in model-based parameter estimates in the model ignoring overdispersion relative to the model accommodating overdispersion. 
+I found no difference in _empirical_ ("robust") parameter estimates _or_ standard errors (and therefore Z and p scores) between the original model, accounting for overdispersion (estimated $\phi = `r round(risk.poisson.gee$scale, 3)`$), and the model where I ignored overdispersion (fixed $\phi = `r no.overdispersion.gee$scale`$). However, the _model-based_ ("naive") estimates did differ slightly between the two approaches. When overdispersion was ignored ($\phi = `r no.overdispersion.gee$scale`$), model-based standard errors for coefficient estimates were all lower than the corresponding standard errors in the model accounting for overdispersion ($\phi = `r round(risk.poisson.gee$scale, 3)`$). This, in turn, resulted in greater magnitude Z-scores (and smaller p-values) in model-based parameter estimates in the model ignoring overdispersion relative to the model accommodating overdispersion. 
 
 Considering the model-based (not empirical) $\beta$ estimates' corresponding p-values:
 
