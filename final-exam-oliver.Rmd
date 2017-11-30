@@ -12,6 +12,7 @@ output:
 knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("dplyr")
 library("tidyr")
+library("ggplot2")
 ```
 
 
@@ -70,11 +71,41 @@ arthritis.table$perc.good <- 100 * (round(arthritis.table$num.good / arthritis.t
 
 #### Based on the descriptive statistics in the table, briefly characterize the pattern of change in the proportions over time including a comparison of the two treatments.
 
+```{r}
+status.plot <- ggplot(data = arthritis.table, mapping = aes(x = week, y = perc.good, group = treatment, color = treatment)) +
+  geom_line() +
+  ylab(label = "% \"Good\"") +
+  xlab(label = "Week")
+print(status.plot)
+
+```
+
 #### Is the study design balanced with respect to the timing of measurements? Briefly justify your answer. 
+
+Design is balanced, same number and timing of samples for all subjects/treatments
+What about sex?
 
 #### Are the data complete? Briefly justify your answer. 
 
+Incomplete. Missing some observations
+
 #### Characterize the pattern of change over time in the proportion with a “good” status by sex.
+
+```{r arthitis-by-sex-over-time}
+by.sex.table <- arthritis.long %>%
+  group_by(treatment, week, sex) %>%
+  summarize(count = sum(!is.na(status)),
+            num.good = sum(status == 1, na.rm = TRUE))
+by.sex.table$prop.good <- round((by.sex.table$num.good / by.sex.table$count), 3)
+
+status.by.sex.plot <- ggplot(data = by.sex.table, mapping = aes(x = week, y = prop.good, group = treatment, color = treatment)) +
+  # geom_line()
+  geom_line() +
+  facet_grid(. ~ sex) +
+  ylab(label = "Prop. \"Good\"") +
+  xlab(label = "Week")
+print(status.by.sex.plot)
+```
 
 <!--
 In the following questions, use PROC GENMOD in SAS to fit marginal logistic regression models using the approach of generalized estimating equations (GEE) to obtain parameter estimates. The time variable, T, is defined to be the categorical variable with 4 levels: taking the value 99 for measurements at weeks -1 and 0 (i.e. for both “baseline” measurements prior to randomization) and values 4, 8 and 12 for the measurements at weeks 4, 8 and 12. The treatment variable, X, is an indicator variable taking the value 1 if a subject received auranofin (A) and the value 0 if placebo (P). The study investigator suggests fitting a marginal logistic regression model for the repeated arthritis self-assessment measurements as the outcome variable and with the T variable and a T*X interaction variable as categorical explanatory variables. He suggests using an independence working correlation matrix to describe the within-subject correlation structure (i.e. using the TYPE=IND on the REPEATEDstatement).
