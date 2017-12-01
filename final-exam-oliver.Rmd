@@ -83,7 +83,7 @@ Ignoring potential effects of age and sex, the percent of subjects self-reportin
 
 #### Is the study design balanced with respect to the timing of measurements? Briefly justify your answer. 
 
-The study design is balanced with respect to the timing of measurements, as there are the same number of measurements, made at the same time, across all subjects.
+The study _design_ is balanced with respect to the timing of measurements, as there are the same number of measurements, made at the same time, across all subjects.
 
 #### Are the data complete? Briefly justify your answer. 
 
@@ -135,7 +135,7 @@ arthritis.long$X <- factor(arthritis.long$X, levels = c(0, 1))
 
 #### b. The model includes the variable T as a main effect. What is being assumed about subjects’ arthritis status at weeks -1 and 0? Briefly critique this assumption.
 
-This assumption effectively ignores within-subject variation between weeks -1 and 0. While there may not be an _a priori_ reason to expect a change over this pre-randomization period, information about within-subject variation is unnecessarily discared. **TODO**: How would this effect the model?
+This assumption effectively ignores within-subject variation between weeks -1 and 0. While there may not be an _a priori_ reason to expect a change over this pre-randomization period, information about within-subject variation is unnecessarily discared. This _might_ lead to mis-specifying the correlation structure of within-subject associations.
 
 #### c. The model does not include the variable X as a main effect. What assumption is therefore being made? Briefly describe why this assumption is reasonable in this study.
 
@@ -149,7 +149,7 @@ Missing completely at random means that the probability that an observation is m
 ```{r dropouts-over-time}
 dropouts <- colSums(apply(X = arthritis.data[, 5:9], MARGIN = 2, FUN = is.na))
 ```
-The increasing number of missing observations over time suggests that subjects _might_ have skipped observations based on whether or not they would have reported "good" status. If so, this would indicate data are NMAR, which would be less than ideal.
+The increasing number of missing observations over time suggests that subjects _might_ have skipped observations based on whether or not they would have reported "good" status. If so, this would indicate data are NMAR (where the probability of missing data is dependent on the values that are missing, $Y^M$), which would be less than ideal.
 
 | Week | # Missing       |
 |:----:|:---------------:|
@@ -163,6 +163,8 @@ The increasing number of missing observations over time suggests that subjects _
 
 ### 3a. Fit the model described in question 2 using PROC GENMOD. Provide the PROC GENMOD code used and the estimates of the parameters in the mean part of the model obtained as well as empirical standard errors for these estimates. 
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
+
+<!--See example examples/genmod.R-->
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
 
