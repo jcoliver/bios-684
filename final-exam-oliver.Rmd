@@ -71,54 +71,93 @@ arthritis.table$perc.good <- 100 * (round(arthritis.table$num.good / arthritis.t
 
 #### Based on the descriptive statistics in the table, briefly characterize the pattern of change in the proportions over time including a comparison of the two treatments.
 
-```{r}
+```{r plot-status, fig.height = 3}
 status.plot <- ggplot(data = arthritis.table, mapping = aes(x = week, y = perc.good, group = treatment, color = treatment)) +
   geom_line() +
   ylab(label = "% \"Good\"") +
-  xlab(label = "Week")
+  xlab(label = "Week") +
+  scale_color_manual(name = "Treatment", values = c("#EC4444", "#4444EC"), labels = c("Auranofin", "Placebo"))
 print(status.plot)
-
 ```
+Ignoring potential effects of age and sex, the percent of subjects self-reporting a "good" status appears to diverge between the two treatments. In the placebo treatment, the percent of subjects with "good" status _decreases_ dramatically over weeks -1 through 4, then increases over weeks 4 through 12. In contrast, the Auranofin treatment showed _increases_ in the percent reporting "good" status over weeks -1 through 4, followed by a decrease between weeks 4 and 8, then a slight increase between weeks 8 and 12.
 
 #### Is the study design balanced with respect to the timing of measurements? Briefly justify your answer. 
 
-Design is balanced, same number and timing of samples for all subjects/treatments
-What about sex?
+The study design is balanced with respect to the timing of measurements, as there are the same number of measurements, made at the same time, across all subjects.
 
 #### Are the data complete? Briefly justify your answer. 
 
-Incomplete. Missing some observations
+The data are not complete; not all subjects have a complete set of all observations.
 
 #### Characterize the pattern of change over time in the proportion with a “good” status by sex.
 
-```{r arthitis-by-sex-over-time}
+```{r arthitis-by-sex-over-time, fig.height = 3}
 by.sex.table <- arthritis.long %>%
   group_by(treatment, week, sex) %>%
   summarize(count = sum(!is.na(status)),
             num.good = sum(status == 1, na.rm = TRUE))
 by.sex.table$prop.good <- round((by.sex.table$num.good / by.sex.table$count), 3)
 
-status.by.sex.plot <- ggplot(data = by.sex.table, mapping = aes(x = week, y = prop.good, group = treatment, color = treatment)) +
-  # geom_line()
+sex.names <- c(F = "Female", M = "Male")
+status.by.sex.plot <- ggplot(data = by.sex.table, 
+                             mapping = aes(x = week, 
+                                           y = prop.good, 
+                                           group = treatment, 
+                                           color = treatment)) +
   geom_line() +
-  facet_grid(. ~ sex) +
+  facet_grid(. ~ sex, labeller = labeller(sex = sex.names)) +
   ylab(label = "Prop. \"Good\"") +
-  xlab(label = "Week")
+  xlab(label = "Week") +
+  scale_color_manual(name = "Treatment", 
+                     values = c("#EC4444", "#4444EC"), 
+                     labels = c("Auranofin", "Placebo"))
 print(status.by.sex.plot)
 ```
+
+There are strikingly different patterns of change over time in the proportion of subjects with a "good" status between females and males. In the placebo treatment, there is a general decrease in the proportion of female subjects reporting "good" status, showing an increase only in the week 4 to week 8 period. The proportion of males reporting a "good" status in the placebo treatment shows an initial decrease (weeks -1 through 4), followed by an increase (weeks 4 through 12). In the Auranofin treatment, females had a sharp increase in the proportion of subjects with "good" status (weeks -1 through 4), followed by a decrease (weeks 4 through 12). Males in the Auranofin treatment showed a general increase in the proportion of subjects with "good" status, except for the week -1 to 0 period, where the proportion was constant and the week 4 to 8 period, where the proportion decreased. The pattern of change over time for males appears more similar to the trend when sex is ignored (previous plot), likely reflecting the fact that the study included more males than females.
 
 <!--
 In the following questions, use PROC GENMOD in SAS to fit marginal logistic regression models using the approach of generalized estimating equations (GEE) to obtain parameter estimates. The time variable, T, is defined to be the categorical variable with 4 levels: taking the value 99 for measurements at weeks -1 and 0 (i.e. for both “baseline” measurements prior to randomization) and values 4, 8 and 12 for the measurements at weeks 4, 8 and 12. The treatment variable, X, is an indicator variable taking the value 1 if a subject received auranofin (A) and the value 0 if placebo (P). The study investigator suggests fitting a marginal logistic regression model for the repeated arthritis self-assessment measurements as the outcome variable and with the T variable and a T*X interaction variable as categorical explanatory variables. He suggests using an independence working correlation matrix to describe the within-subject correlation structure (i.e. using the TYPE=IND on the REPEATEDstatement).
 -->
+```{r data-prep-1.2}
+# Setup variables for GEE
+# Using time instead of T, because T is reserved (TRUE)
+arthritis.long$time <- arthritis.long$week
+arthritis.long$time[arthritis.long$time %in% c(-1, 0)] <- 99
+arthritis.long$time <- factor(arthritis.long$time, levels = c(99, 4, 8, 12))
+
+arthritis.long$X <- 0
+arthritis.long$X[arthritis.long$treatment == "A"] <- 1
+arthritis.long$X <- factor(arthritis.long$X, levels = c(0, 1))
+```
+
 ### 2a. Define appropriate notation and write down the algebraic form for the model that will be fitted using the GEE method, including any assumptions.
 
 #### b. The model includes the variable T as a main effect. What is being assumed about subjects’ arthritis status at weeks -1 and 0? Briefly critique this assumption.
 
+This assumption effectively ignores within-subject variation between weeks -1 and 0. While there may not be an _a priori_ reason to expect a change over this pre-randomization period, information about within-subject variation is unnecessarily discared. **TODO**: How would this effect the model?
+
 #### c. The model does not include the variable X as a main effect. What assumption is therefore being made? Briefly describe why this assumption is reasonable in this study.
+
+The assumption is that subjects assigned to placebo treatment have the same expected probability of reporting "good" arthritis status as subjects assigned to the Auranofin treatment _before_ the treatment is actually applied ($Pr(Y = "good"|X = 0, T = 99)) = Pr(Y = "good"|X = 1, T = 99)$). This is a reasonable assumption because it is a randomized trial.
 
 #### d. In using the GEE method in the presence of missing data, the assumption of missingness completely at random (MCAR) is required. In 1-2 sentences, describe what this means about the missing assessments.
 
+Missing completely at random means that the probability that an observation is missing is independent of the value of observations that are made ($Y^O$) and the value of observations that are missing ($Y^M$). This is in contrast to assumption of data missing at random (MAR), where the probability that an observation is missing is dependent on the values that _were_ observed ($Y^O$), but unrelated to the values that are actually missing ($Y^M$).
+
 #### Are there any features of the study dataset that might lead you to question this?
+```{r dropouts-over-time}
+dropouts <- colSums(apply(X = arthritis.data[, 5:9], MARGIN = 2, FUN = is.na))
+```
+The increasing number of missing observations over time suggests that subjects _might_ have skipped observations based on whether or not they would have reported "good" status. If so, this would indicate data are NMAR, which would be less than ideal.
+
+| Week | # Missing       |
+|:----:|:---------------:|
+| -1   | `r dropouts[1]` |
+| 0    | `r dropouts[2]` |
+| 4    | `r dropouts[3]` |
+| 8    | `r dropouts[4]` |
+| 12   | `r dropouts[5]` |
 
 <!--In all questions that follow, assume that MCAR is reasonable.-->
 
