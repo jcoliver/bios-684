@@ -133,9 +133,77 @@ arthritis.long$X <- factor(arthritis.long$X, levels = c(0, 1))
 
 ### 2a. Define appropriate notation and write down the algebraic form for the model that will be fitted using the GEE method, including any assumptions.
 
+**Assume**:
+
+1. The mean response is conditional on covariates only (no random effects) and is assumed to be related to covariates through a known link function ($g(\cdot)$), which has a linear relationship with covariates:
+
+$$
+g(\mu_{ij}) = \beta_{1}X_{1ij} + \beta_{2}X_{2ij} + \beta_{3}X_{3ij} + ... + \beta_{p}X_{pij}
+$$
+where $\mu_{ij} = E(Y_{ij}|X_{ij})$.
+
+2. The conditional variance is related to the mean by a known variance function ($v(\cdot)$) and scale parameter ($\phi$):
+
+$$
+Var(Y_{ij}|X_{ij}) = \phi v(\mu_{ij})
+$$
+
+3. The conditional association between responses of the same subject are a function of the mean an a set of association parameters, $\alpha$. 
+
+Additional assumption: Data are missing completely at random (MCAR).
+
+**Model definition**
+
+#TODO: add i subscript to Ts
+
+1. Link function:
+$$
+logit(\mu_{ij}) = \beta_1 + \beta_2 T_2 + \beta_3 T_3 + \beta_4 T_4 + \beta_5 T_3 \times X_i + \beta_6 T_4 \times X_i + \beta_7 T_5 \times X_i
+$$
+Where:
+$$
+\begin{array}{l}
+  T_2 = 
+  \begin{cases}
+      1, & \text{if measurement taken at week 4} \\
+      0, & \text{otherwise}
+  \end{cases} \\
+  T_3 = 
+  \begin{cases}
+      1, & \text{if measurement taken at week 8} \\
+      0, & \text{otherwise}
+  \end{cases} \\
+  T_4 = 
+  \begin{cases}
+      1, & \text{if measurement taken at week 12} \\
+      0, & \text{otherwise}
+  \end{cases} \\
+  X_i = 
+  \begin{cases}
+      1, & \text{Subject in Auranofin treatment} \\
+      0, & \text{Subject in placebo treatment}
+  \end{cases} \\
+\end{array}
+$$
+2. Variance
+
+$$
+Var(Y_{ij}|X_{ij}) = \mu_{ij}(1 - \mu_{ij}) \enspace \text{(Bernoulli variance, assuming no overdispersion, }\phi = 1 \text{)}
+$$
+3. Within-subject association has an unstructured log-odds ratio pattern:
+
+$$
+log OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
+$$
+where
+
+$$
+OR(Y_{ij}, Y_{ik}) = \frac{Pr(Y_{ij} = 1, Y_{ik} = 1) \times Pr(Y_{ij} = 0, Y_{ik} = 0)}{Pr(Y_{ij} = 1, Y_{ik} = 0) \times Pr(Y_{ij} = 0, Y_{ik} = 1)}
+$$
+
 #### b. The model includes the variable T as a main effect. What is being assumed about subjects’ arthritis status at weeks -1 and 0? Briefly critique this assumption.
 
-This assumption effectively ignores within-subject variation between weeks -1 and 0. While there may not be an _a priori_ reason to expect a change over this pre-randomization period, information about within-subject variation is unnecessarily discared. This _might_ lead to mis-specifying the correlation structure of within-subject associations.
+This assumption effectively ignores within-subject variation between weeks -1 and 0. While there may not be an _a priori_ reason to expect a change over this pre-randomization period, information about within-subject variation is unnecessarily discared. This _might_ lead to mis-specifying the correlation structure of within-subject associations. Misspecification of the covariance structure has the potential to reduce the power of the analysis.
 
 #### c. The model does not include the variable X as a main effect. What assumption is therefore being made? Briefly describe why this assumption is reasonable in this study.
 
