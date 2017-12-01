@@ -13,8 +13,9 @@ knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("dplyr")
 library("tidyr")
 library("ggplot2")
+library("gee")
+library("geepack")
 ```
-
 
 ## Question 1
 <!--
@@ -154,11 +155,9 @@ Additional assumption: Data are missing completely at random (MCAR).
 
 **Model definition**
 
-#TODO: add i subscript to Ts
-
 1. Link function:
 $$
-logit(\mu_{ij}) = \beta_1 + \beta_2 T_2 + \beta_3 T_3 + \beta_4 T_4 + \beta_5 T_3 \times X_i + \beta_6 T_4 \times X_i + \beta_7 T_5 \times X_i
+logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_3 T_{i3} + \beta_4 T_{i4} + \beta_5 T_{i3} \times X_i + \beta_6 T_{i4} \times X_i + \beta_7 T_{i5} \times X_i
 $$
 Where:
 $$
@@ -193,7 +192,7 @@ $$
 3. Within-subject association has an unstructured log-odds ratio pattern:
 
 $$
-log OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
+\text{log} OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
 $$
 where
 
@@ -231,7 +230,15 @@ The increasing number of missing observations over time suggests that subjects _
 
 ### 3a. Fit the model described in question 2 using PROC GENMOD. Provide the PROC GENMOD code used and the estimates of the parameters in the mean part of the model obtained as well as empirical standard errors for these estimates. 
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
-
+```{r marginal-model-arthritis}
+arthritis.gee <- gee(status ~ time + time:X,
+                     id = id,
+                     data = arthritis.long,
+                     family = binomial,
+                     corstr = "unstructured")
+arthritis.gee.summary <- summary(arthritis.gee)
+arthritis.gee.coef <- coef(arthritis.gee.summary)
+```
 <!--See example examples/genmod.R-->
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
