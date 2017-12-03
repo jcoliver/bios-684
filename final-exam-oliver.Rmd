@@ -15,6 +15,7 @@ library("tidyr")
 library("ggplot2")
 library("gee")
 library("geepack")
+library("lme4")
 ```
 
 ## Question 1
@@ -23,7 +24,7 @@ The question concerns the analysis of a subset of data from a clinical trial whi
 The data from this study are stored in the file arthritis.txt, which can be found on the course web site. Each row of the data set contains the following variables: subject ID number, sex (M=male, F=female), subject’s age in years at entry to the study, the randomized treatment group (A or P), and the self-assessment results at weeks -1, 0, 4, 8 and 12, respectively. Although the subjects’ ages are provided, these data are not used in any question.
 -->
 
-```{r read-q1-data}
+```{r read-arthritis-data}
 # Read data from file
 arthritis.data <- read.delim(file = "data/arthritis.txt", 
                              header = FALSE,
@@ -31,6 +32,9 @@ arthritis.data <- read.delim(file = "data/arthritis.txt",
                              na.strings = ".")
 # Assign column names
 colnames(arthritis.data) <- c("id", "sex", "age", "treatment", "r.n1", "r.0", "r.4", "r.8", "r.12")
+
+# Re-level treatment so placebo is default
+arthritis.data$treatment <- factor(arthritis.data$treatment, levels = c("P", "A"))
 
 # Tranform to long format
 arthritis.long <- gather(data = arthritis.data, 
@@ -72,12 +76,12 @@ arthritis.table$perc.good <- 100 * (round(arthritis.table$num.good / arthritis.t
 
 #### Based on the descriptive statistics in the table, briefly characterize the pattern of change in the proportions over time including a comparison of the two treatments.
 
-```{r plot-status, fig.height = 3}
+```{r plot-arthritis-status, fig.height = 3}
 status.plot <- ggplot(data = arthritis.table, mapping = aes(x = week, y = perc.good, group = treatment, color = treatment)) +
   geom_line() +
   ylab(label = "% \"Good\"") +
   xlab(label = "Week") +
-  scale_color_manual(name = "Treatment", values = c("#EC4444", "#4444EC"), labels = c("Auranofin", "Placebo"))
+  scale_color_manual(name = "Treatment", values = c("#4444EC", "#EC4444"), labels = c("Placebo", "Auranofin"))
 print(status.plot)
 ```
 Ignoring potential effects of age and sex, the percent of subjects self-reporting a "good" status appears to diverge between the two treatments. In the placebo treatment, the percent of subjects with "good" status _decreases_ dramatically over weeks -1 through 4, then increases over weeks 4 through 12. In contrast, the Auranofin treatment showed _increases_ in the percent reporting "good" status over weeks -1 through 4, followed by a decrease between weeks 4 and 8, then a slight increase between weeks 8 and 12.
@@ -92,7 +96,7 @@ The data are not complete; not all subjects have a complete set of all observati
 
 #### Characterize the pattern of change over time in the proportion with a “good” status by sex.
 
-```{r arthitis-by-sex-over-time, fig.height = 3}
+```{r arthritis-status-by-sex-over-time, fig.height = 3}
 by.sex.table <- arthritis.long %>%
   group_by(treatment, week, sex) %>%
   summarize(count = sum(!is.na(status)),
@@ -110,8 +114,8 @@ status.by.sex.plot <- ggplot(data = by.sex.table,
   ylab(label = "Prop. \"Good\"") +
   xlab(label = "Week") +
   scale_color_manual(name = "Treatment", 
-                     values = c("#EC4444", "#4444EC"), 
-                     labels = c("Auranofin", "Placebo"))
+                     values = c("#4444EC", "#EC4444"), 
+                     labels = c("Placebo", "Auranofin"))
 print(status.by.sex.plot)
 ```
 
@@ -230,7 +234,11 @@ The increasing number of missing observations over time suggests that subjects _
 
 ### 3a. Fit the model described in question 2 using PROC GENMOD. Provide the PROC GENMOD code used and the estimates of the parameters in the mean part of the model obtained as well as empirical standard errors for these estimates. 
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
-```{r marginal-model-arthritis}
+
+***
+#QUESTION: How to exclude the `time99:timeX1` term?
+
+```{r marginal-model-arthritis, echo = TRUE}
 arthritis.gee <- gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
@@ -239,7 +247,7 @@ arthritis.gee <- gee(status ~ time + time:X,
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
 ```
-<!--See example examples/genmod.R-->
+***
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
 
@@ -248,6 +256,13 @@ arthritis.gee.coef <- coef(arthritis.gee.summary)
 ### 4a. Include in your code a Wald test of the joint hypothesis that there is no effect of auranofin compared with placebo at all three of weeks 4, 8 and 12. Run this PROC GENMOD analysis and provide the PROC GENMOD code used, as well as the estimates of the parameters in the mean part of the model obtained, the standard errors for these estimates, p-values for tests that each parameter equals zero, and the p-value from the Wald test of joint hypothesis.
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
 
+***
+#QUESTION: Are z-scores the Wald test values? Not for the question of all three week periods at once - how to do Wald test for week4, week8, week12 simultaneously?
+```{r print-arthritis-gee-coef}
+print(arthritis.gee.coef)
+```
+***
+
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
 
@@ -255,7 +270,47 @@ arthritis.gee.coef <- coef(arthritis.gee.summary)
 
 ### 5. Another investigator questions whether it is appropriate to use an unstructured log odds ratio correlation structure. Now using PROC GENMOD, fit the same model but using an unstructured log odds ratio structure for the working association structure. Write out how your model formulation given in 2(a) changes under this alternative assumption. Describe whether the conclusions of your GEE analyses are sensitive to the change in association structure.
 
+***
+#QUESTION: the two correlation structures appear the same; from above (emphasis added):
+> Another investigation questions whether it is appropriate to use an _**unstructured log odds ratio correlation**_ structure. Now using PROC GENMOD, fit the same model but using an _**unstructured log odds ratio structure**_...
+
+***
+
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
+
+```{r marginal-compare-sexes, echo = TRUE, eval = FALSE}
+males.long <- arthritis.long[arthritis.long$sex == "M", ]
+females.long <- arthritis.long[arthritis.long$sex == "F", ]
+
+males.gee <- gee(status ~ time + time:X,
+                 id = id,
+                 data = males.long,
+                 family = binomial,
+                 corstr = "unstructured")
+males.gee.summary <- summary(males.gee)
+males.gee.coef <- coef(males.gee.summary)
+
+# Doesnt work. Too small sample size...?
+females.gee <- gee(status ~ time + time:X,
+                   id = id,
+                   data = females.long,
+                   family = binomial,
+                   corstr = "unstructured")
+females.gee.summary <- summary(females.gee)
+females.gee.coef <- coef(females.gee.summary)
+
+# Also causes error ("fitted value very close to 1...")
+arthritis.s.gee <- gee(status ~ time + time:X + time:X:sex,
+                     id = id,
+                     data = arthritis.long,
+                     family = binomial,
+                     corstr = "unstructured")
+```
+***
+#QUESTION: How to do this, including sex as factor or analyzing females alone do not work?
+> `Cgee: error: logistic model for probability has fitted value very close to 1. estimates diverging; iteration terminated.`
+
+***
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
@@ -280,11 +335,57 @@ Year: Year of follow-up after starting randomized treatment
 As in HW8, you may assume that the counts of new skin cancers, Y, are from exact one-year periods (so that no offset term is needed). 
 -->
 
+```{r read-skin-data}
+# Read data
+skin.data <- read.delim(file = "data/skin.txt", sep = " ", header = FALSE)
+
+# Trim first & last columns (created by whitespace)
+skin.data <- skin.data[, -c(1, ncol(skin.data))]
+
+# Identify columns
+colnames(skin.data) <- c("id", "center", "age", "skin", "gender", "prior.count", "new.count", "treatment", "year")
+
+# Drop data from center != 1
+skin.data <- skin.data[skin.data$center == 1, ]
+
+# Set factors as needed
+factor.cols <- c("id", "center", "skin", "gender", "treatment")
+for (c in factor.cols) {
+  skin.data[, c] <- factor(skin.data[, c])
+}
+```
+
+
 #### a) Provide an algebraic definition for a generalized linear marginal model in which the only effects are for the intercept and Year (as a continuous variable). Fit this model and provide a table from your SAS output which includes the estimates of the parameters in your model.
+
+```{r skin-gee, include = FALSE, echo = TRUE}
+skin.gee <- gee(new.count ~ year,
+                id = id,
+                data = skin.data,
+                family = poisson,
+                corstr = "exchangeable")
+skin.gee.summary <- summary(skin.gee)
+skin.gee.coef <- coef(skin.gee.summary)
+```
+
+#TODO: Check the correlation structure for this model
 
 #### b) Provide an algebraic definition for a generalized linear mixed model (GLMM) in which the only fixed effects are for the intercept and Year (as a continuous variable), and the only random effect is the intercept. What is being assumed about how the distribution of risk among subjects changes with time?
 
 #### c) Fit your chosen GLMM in SAS and provide the SAS code for the fitting the model (just provide the code from the PROC that you use). Provide a table from your SAS output which includes the estimates for the parameters in your GLMM, and provide careful interpretation of the Year term.
+
+<!-- see examples/depress.R -->
+
+```{r skin-glmm, echo = TRUE}
+
+# Use nAGQ > 1 for better accuracy
+skin.glmer <- glmer(new.count ~ 1 + year + (1 | id),
+                    data = skin.data,
+                    nAGQ = 1, # 1 point evaluated = Laplace approximation
+                    family = poisson(link = "log"))
+skin.glm.summary <- summary(skin.glmer)
+skin.glm.coef <- coef(skin.glm.summary)
+```
 
 #### d) Are the estimates for the fixed intercept terms the same or different in the GLMM compared with the marginal model fitted in question 2a? Why are they the same or different?
 
