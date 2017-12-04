@@ -270,26 +270,21 @@ arthritis.gee.simple <- gee(status ~ time,
 # Or calculate by hand?
 ```
 
-Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$:
+Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
 
 $$
 L\beta = 
-\left (
-  \begin{array}{r}
-    1 & -1 & 0 \\
-    1 & 0 & -1
-  \end{array}
-\right )
-\left (
-  \begin{array}{l}
-    \beta_{5} \\
-    \beta_{6} \\
-    \beta_{7}
-  \end{array}
-\right )
+\begin{pmatrix}
+  1 & -1 & 0 \\
+  1 & 0 & -1
+\end{pmatrix}
+\begin{pmatrix}
+  \beta_{5} \\
+  \beta_{6} \\
+  \beta_{7}
+\end{pmatrix}
 $$
 
-$W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
 
 #QUESTION: How to get $\widehat{Cov}(\hat{\beta})$ from R?
 
@@ -303,14 +298,19 @@ $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
 ### 5. Another investigator questions whether it is appropriate to use an unstructured log odds ratio correlation structure. Now using PROC GENMOD, fit the same model but using an unstructured log odds ratio structure for the working association structure. Write out how your model formulation given in 2(a) changes under this alternative assumption. Describe whether the conclusions of your GEE analyses are sensitive to the change in association structure.
 
 ***
-#QUESTION: the two correlation structures appear the same; from above (emphasis added):
-> Another investigation questions whether it is appropriate to use an _**unstructured log odds ratio correlation**_ structure. Now using PROC GENMOD, fit the same model but using an _**unstructured log odds ratio structure**_...
+#QUESTION: the two correlation structures appear the same; from above (emphasis added above)
+> Another investigator questions whether it is appropriate to use an _**unstructured log odds ratio correlation**_ structure. Now using PROC GENMOD, fit the same model but using an _**unstructured log odds ratio structure**_...
 
 Maybe this should be a _structured_ working association structure? And what would the structure be? AR?
 ***
 
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
 
+***
+#QUESTION: How to do this? Including sex as factor or analyzing females alone do not work. 
+> `Cgee: error: logistic model for probability has fitted value very close to 1. estimates diverging; iteration terminated.`
+
+***
 ```{r marginal-compare-sexes, echo = TRUE, eval = FALSE}
 males.long <- arthritis.long[arthritis.long$sex == "M", ]
 females.long <- arthritis.long[arthritis.long$sex == "F", ]
@@ -339,11 +339,6 @@ arthritis.s.gee <- gee(status ~ time + time:X + time:X:sex,
                      family = binomial,
                      corstr = "unstructured")
 ```
-***
-#QUESTION: How to do this? Including sex as factor or analyzing females alone do not work. 
-> `Cgee: error: logistic model for probability has fitted value very close to 1. estimates diverging; iteration terminated.`
-
-***
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
@@ -441,8 +436,11 @@ week)
 -->
 
 ```{r read-toenail-data}
-toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = " ")
+# Read the data in
+toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = "")
 
+# Assign column names
+colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatment")
 ```
 
 ### The researchers had several questions, which they stated to you as follows:
