@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("dplyr")
 library("tidyr")
 library("ggplot2")
+library("lmtest")
 library("gee")
 library("geepack")
 library("lme4")
@@ -131,6 +132,7 @@ arthritis.long$time <- arthritis.long$week
 arthritis.long$time[arthritis.long$time %in% c(-1, 0)] <- 99
 arthritis.long$time <- factor(arthritis.long$time, levels = c(99, 4, 8, 12))
 
+# X is indicator of treatment (0 = P(lacebo), 1 = A(uranofin))
 arthritis.long$X <- 0
 arthritis.long$X[arthritis.long$treatment == "A"] <- 1
 arthritis.long$X <- factor(arthritis.long$X, levels = c(0, 1))
@@ -257,10 +259,40 @@ arthritis.gee.coef <- coef(arthritis.gee.summary)
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
 
 ***
-#QUESTION: Are z-scores the Wald test values? Not for the question of all three week periods at once - how to do Wald test for week4, week8, week12 simultaneously?
-```{r print-arthritis-gee-coef}
-print(arthritis.gee.coef)
+#QUESTION: How to do a multivariate Wald test on GEE?
+```{r joint-wald-test, echo = TRUE, eval = FALSE}
+arthritis.gee.simple <- gee(status ~ time,
+                            id = id,
+                            data = arthritis.long,
+                            family = binomial,
+                            corstr = "unstructured")
+# Wald test...
+# Or calculate by hand?
 ```
+
+Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$:
+
+$$
+L\beta = 
+\left (
+  \begin{array}{r}
+    1 & -1 & 0 \\
+    1 & 0 & -1
+  \end{array}
+\right )
+\left (
+  \begin{array}{l}
+    \beta_{5} \\
+    \beta_{6} \\
+    \beta_{7}
+  \end{array}
+\right )
+$$
+
+$W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
+
+#QUESTION: How to get $\widehat{Cov}(\hat{\beta})$ from R?
+
 ***
 
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
@@ -274,6 +306,7 @@ print(arthritis.gee.coef)
 #QUESTION: the two correlation structures appear the same; from above (emphasis added):
 > Another investigation questions whether it is appropriate to use an _**unstructured log odds ratio correlation**_ structure. Now using PROC GENMOD, fit the same model but using an _**unstructured log odds ratio structure**_...
 
+Maybe this should be a _structured_ working association structure? And what would the structure be? AR?
 ***
 
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
@@ -307,7 +340,7 @@ arthritis.s.gee <- gee(status ~ time + time:X + time:X:sex,
                      corstr = "unstructured")
 ```
 ***
-#QUESTION: How to do this, including sex as factor or analyzing females alone do not work?
+#QUESTION: How to do this? Including sex as factor or analyzing females alone do not work. 
 > `Cgee: error: logistic model for probability has fitted value very close to 1. estimates diverging; iteration terminated.`
 
 ***
@@ -354,7 +387,6 @@ for (c in factor.cols) {
   skin.data[, c] <- factor(skin.data[, c])
 }
 ```
-
 
 #### a) Provide an algebraic definition for a generalized linear marginal model in which the only effects are for the intercept and Year (as a continuous variable). Fit this model and provide a table from your SAS output which includes the estimates of the parameters in your model.
 
@@ -407,6 +439,11 @@ week)
 5 Unafflicted nail length (the response, mm)
 6 Treatment indicator (= 1 if terbinafine, = 2 if itraconazole)
 -->
+
+```{r read-toenail-data}
+toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = " ")
+
+```
 
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
