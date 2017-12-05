@@ -205,7 +205,7 @@ Note $T_{i2}$ is included only in an interaction effect ($T_{i2} \times X_i$). T
 $$
 Var(Y_{ij}|X_{ij}) = \mu_{ij}(1 - \mu_{ij}) \enspace \text{(Bernoulli variance, assuming no overdispersion, }\phi = 1 \text{)}
 $$
-3. Within-subject association has an "independent" structure for the working correlation:
+3. Within-subject association has an "independent" structure for the working correlation, asserting no correlation between observations within a subject:
 
 $$
 Corr(Y_{ij}, Y_{ik}) = 
@@ -251,7 +251,7 @@ arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
-                     corstr = "independence"))
+                     corstr = "independence")) # Effectively *no* within-subject correlation
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
 coef.table <- data.frame(arthritis.gee.coef)
@@ -276,11 +276,13 @@ For coefficients $\beta_5$ - $\beta_8$, the covariate is the interaction between
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
 
-#TODO: Describe differences in estimates of error.
+In general, ordinary and marginal models differ primarily in how they deal with within-subject correlations. In the ordinary logistic regression model, all observations, even those made on the same subject at different times, are assumed to be independent. In contrast, the marginal logistic model, within-subject correlations are accounted for in the "working" correlation matrix. Failing to account for within-subject non-independence may lead to misleading inferences, as the standard errors on parameter estimates will be smaller, potentially leading to false positives (rejecting $\beta = 0$ even when true). However, in this particular case, because we set `corstr = "independence"` in our marginal model, there is effectively _no_ within-subject correlation in the working correlation matrix (See also documentation on [SAS GENMOD](https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect043.htm)).
+
+#TODO: E-mail with question about working correlation structure (independence = no within-subject correlation?)
 
 #### Which approach do you prefer and why?
 
-#TODO: Marginal. Less opportunity for false positive (check)
+In general, I would prefer the logistic marginal model over the ordinary logistic regression analysis because marginal models relax the assumption of independence among all samples, which is most likely violated in a longitudinal study such as this one. Marginal models also do not require the assumption of homogeneity of variance through time. The relaxation of these assumptions affords more confidence in inferences, as standard errors for parameter estimates are not artificially small as they would be for an ordinary logistic regression model on these longitudinal data.
 
 ### 4a. Include in your code a Wald test of the joint hypothesis that there is no effect of auranofin compared with placebo at all three of weeks 4, 8 and 12. Run this PROC GENMOD analysis and provide the PROC GENMOD code used, as well as the estimates of the parameters in the mean part of the model obtained, the standard errors for these estimates, p-values for tests that each parameter equals zero, and the p-value from the Wald test of joint hypothesis.
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
