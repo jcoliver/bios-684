@@ -13,10 +13,13 @@ knitr::opts_chunk$set(echo = FALSE, dev = "pdf")
 library("dplyr")
 library("tidyr")
 library("ggplot2")
-library("lmtest")
+# library("lmtest")
 library("gee")
-library("geepack")
+# library("geepack")
+# library("contrast")
+library("aods3")
 library("lme4")
+# library("alr")
 ```
 
 ## Question 1
@@ -163,22 +166,27 @@ Additional assumption: Data are missing completely at random (MCAR).
 
 1. Link function:
 $$
-logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_3 T_{i3} + \beta_4 T_{i4} + \beta_5 T_{i3} \times X_i + \beta_6 T_{i4} \times X_i + \beta_7 T_{i5} \times X_i
+logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_3 T_{i3} + \beta_4 T_{i4} + \beta_5 T_{i1} \times X_i + \beta_6 T_{i2} \times X_i + \beta_7 T_{i3} \times X_i + \beta_8 T_{i4} \times X_i
 $$
 Where:
 $$
 \begin{array}{l}
-  T_2 = 
+  T_{i1} = 
+  \begin{cases}
+      1, & \text{if measurement taken at weeks -1 or 0} \\
+      0, & \text{otherwise}
+  \end{cases} \\
+  T_{i2} = 
   \begin{cases}
       1, & \text{if measurement taken at week 4} \\
       0, & \text{otherwise}
   \end{cases} \\
-  T_3 = 
+  T_{i3} = 
   \begin{cases}
       1, & \text{if measurement taken at week 8} \\
       0, & \text{otherwise}
   \end{cases} \\
-  T_4 = 
+  T_{i4} = 
   \begin{cases}
       1, & \text{if measurement taken at week 12} \\
       0, & \text{otherwise}
@@ -239,6 +247,7 @@ The increasing number of missing observations over time suggests that subjects _
 
 ***
 #QUESTION: How to exclude the `time99:timeX1` term?
+Using `formula = status ~ time + time*X` excludes the time99:timeX1 term, but brings in the main effect of X into the model. By default, R uses reference level coding (and this is true apparently for `gee`, which has `contr.treatment` for both `time` and `X` in the `contrasts` element of the `gee` output), which is what the `PARAM = REF` command in the `CLASS` Statement of `PROC GENMOD` appears to be doing.
 
 ```{r marginal-model-arthritis, echo = TRUE}
 arthritis.gee <- gee(status ~ time + time:X,
@@ -257,17 +266,25 @@ arthritis.gee.coef <- coef(arthritis.gee.summary)
 
 ### 4a. Include in your code a Wald test of the joint hypothesis that there is no effect of auranofin compared with placebo at all three of weeks 4, 8 and 12. Run this PROC GENMOD analysis and provide the PROC GENMOD code used, as well as the estimates of the parameters in the mean part of the model obtained, the standard errors for these estimates, p-values for tests that each parameter equals zero, and the p-value from the Wald test of joint hypothesis.
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
+<!-- For aods3::wald.test in R, specify the Terms to run the test for, not the L matrix-->
 
-***
-#QUESTION: How to do a multivariate Wald test on GEE?
-```{r joint-wald-test, echo = TRUE, eval = FALSE}
-arthritis.gee.simple <- gee(status ~ time,
-                            id = id,
-                            data = arthritis.long,
-                            family = binomial,
-                            corstr = "unstructured")
-# Wald test...
-# Or calculate by hand?
+```{r joint-wald-test, echo = TRUE, eval = TRUE}
+arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1],
+                                  varb = arthritis.gee$robust.variance,
+                                  Terms = c(6:8))
+
+L.matrix <- matrix(data = NA, nrow = 2, ncol = 8)
+L.matrix[1, ] <- c(0, 0, 0, 0, 0, 1, -1, 0)
+L.matrix[2, ] <- c(0, 0, 0, 0, 0, 1, 0, -1)
+arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1],
+                                  varb = arthritis.gee$robust.variance,
+                                  L = L.matrix)
+
+arthritis.one.wald <- wald.test(b = arthritis.gee.coef[, 1],
+                                  varb = arthritis.gee$robust.variance,
+                                  Terms = 6) # <- this gives same result as univariate test
+
+
 ```
 
 Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
@@ -275,8 +292,9 @@ Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\wideh
 $$
 L\beta = 
 \begin{pmatrix}
-  1 & -1 & 0 \\
-  1 & 0 & -1
+  1 & 0 & 0 \\
+  0 & 1 & 0 \\
+  0 & 0 & 1
 \end{pmatrix}
 \begin{pmatrix}
   \beta_{5} \\
@@ -287,6 +305,7 @@ $$
 
 
 #QUESTION: How to get $\widehat{Cov}(\hat{\beta})$ from R?
+It's in gee$robust.variance
 
 ***
 
@@ -298,46 +317,32 @@ $$
 ### 5. Another investigator questions whether it is appropriate to use an unstructured log odds ratio correlation structure. Now using PROC GENMOD, fit the same model but using an unstructured log odds ratio structure for the working association structure. Write out how your model formulation given in 2(a) changes under this alternative assumption. Describe whether the conclusions of your GEE analyses are sensitive to the change in association structure.
 
 ***
-#QUESTION: the two correlation structures appear the same; from above (emphasis added above)
-> Another investigator questions whether it is appropriate to use an _**unstructured log odds ratio correlation**_ structure. Now using PROC GENMOD, fit the same model but using an _**unstructured log odds ratio structure**_...
-
-Maybe this should be a _structured_ working association structure? And what would the structure be? AR?
+#QUESTION: How to do log odds ratio for correlation structure in R, AND what is the structure being used in 2(a) for the association structure?
 ***
+
+```{r}
+# Modeled off example in genmod.R:
+
+arthritis.gee.logOR <- alr(status ~ time + time:X,
+                           id = id,
+                           data = arthritis.long,
+                           depm = "exchangeable",
+                           ainit = 0.01)
+arthritis.gee.logOR.coef <- coef(summary(arthritis.gee.logOR))
+
+# Produces SE = 0 and Z = Inf for all coefficients
+```
 
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
 
-***
-#QUESTION: How to do this? Including sex as factor or analyzing females alone do not work. 
-> `Cgee: error: logistic model for probability has fitted value very close to 1. estimates diverging; iteration terminated.`
-
-***
-```{r marginal-compare-sexes, echo = TRUE, eval = FALSE}
-males.long <- arthritis.long[arthritis.long$sex == "M", ]
-females.long <- arthritis.long[arthritis.long$sex == "F", ]
-
-males.gee <- gee(status ~ time + time:X,
-                 id = id,
-                 data = males.long,
-                 family = binomial,
-                 corstr = "unstructured")
-males.gee.summary <- summary(males.gee)
-males.gee.coef <- coef(males.gee.summary)
-
-# Doesnt work. Too small sample size...?
-females.gee <- gee(status ~ time + time:X,
-                   id = id,
-                   data = females.long,
-                   family = binomial,
-                   corstr = "unstructured")
-females.gee.summary <- summary(females.gee)
-females.gee.coef <- coef(females.gee.summary)
-
-# Also causes error ("fitted value very close to 1...")
-arthritis.s.gee <- gee(status ~ time + time:X + time:X:sex,
+```{r marginal-compare-sexes, echo = TRUE}
+arthritis.s.gee <- gee(status ~ sex + time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
                      corstr = "unstructured")
+arthritis.s.gee.coef <- data.frame(coef(summary(arthritis.s.gee)))
+arthritis.s.gee.coef$p <- 2*pnorm(abs(arthritis.s.gee.coef[, 5]), lower.tail = FALSE)
 ```
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
