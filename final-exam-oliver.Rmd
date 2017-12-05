@@ -198,6 +198,8 @@ $$
   \end{cases} \\
 \end{array}
 $$
+Note $T_{i2}$ is included only in an interaction effect ($T_{i2} \times X_i$). This is because R will create a coefficient for every level of a factor in an interaction term. See more details in the answer to 3(a).
+
 2. Variance
 
 $$
@@ -245,52 +247,80 @@ The increasing number of missing observations over time suggests that subjects _
 ### 3a. Fit the model described in question 2 using PROC GENMOD. Provide the PROC GENMOD code used and the estimates of the parameters in the mean part of the model obtained as well as empirical standard errors for these estimates. 
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
 
-***
-#QUESTION: How to exclude the `time99:timeX1` term?
-Using `formula = status ~ time + time*X` excludes the time99:timeX1 term, but brings in the main effect of X into the model. By default, R uses reference level coding (and this is true apparently for `gee`, which has `contr.treatment` for both `time` and `X` in the `contrasts` element of the `gee` output), which is what the `PARAM = REF` command in the `CLASS` Statement of `PROC GENMOD` appears to be doing.
-
 ```{r marginal-model-arthritis, echo = TRUE}
-arthritis.gee <- gee(status ~ time + time:X,
+arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
-                     corstr = "unstructured")
+                     corstr = "unstructured"))
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
+coef.table <- data.frame(arthritis.gee.coef)
+coef.table$p <- 2*pnorm(q = abs(arthritis.gee.coef[,5]), lower.tail = FALSE)
+coef.table <- round(coef.table, 3)
 ```
-***
+Note: Using `formula = status ~ time + time*X` excludes the `time99:timeX1` term, but brings in the main effect of X into the model. By default, R uses reference level coding (and this is true apparently for `gee`, which has `contr.treatment` for both `time` and `X` in the `contrasts` element of the `gee` output), which is what the `PARAM = REF` command in the `CLASS` Statement of `PROC GENMOD` appears to be doing.
+
+Parameter estimates and empirical ("robust") standard errors:
+
+| Coefficient | Covariate  | Estimate                   | Standard Error                | $P(\beta = 0)$ |
+|:-----------:|:-----------|:--------------------------:|:-----------------------------:| :------------------:|
+| $\beta_1$   | Intercept  | `r coef.table$Estimate[1]` | `r coef.table$Robust.S.E.[1]` | `r coef.table$p[1]` |
+| $\beta_2$   | Time = 4   | `r coef.table$Estimate[2]` | `r coef.table$Robust.S.E.[2]` | `r coef.table$p[2]` |
+| $\beta_3$   | Time = 8   | `r coef.table$Estimate[3]` | `r coef.table$Robust.S.E.[3]` | `r coef.table$p[3]` |
+| $\beta_4$   | Time = 12  | `r coef.table$Estimate[4]` | `r coef.table$Robust.S.E.[4]` | `r coef.table$p[4]` |
+| $\beta_5$   | Time99 * A | `r coef.table$Estimate[5]` | `r coef.table$Robust.S.E.[5]` | `r coef.table$p[5]` |
+| $\beta_6$   | Time4 * A  | `r coef.table$Estimate[6]` | `r coef.table$Robust.S.E.[6]` | `r coef.table$p[6]` |
+| $\beta_7$   | Time8 * A  | `r coef.table$Estimate[7]` | `r coef.table$Robust.S.E.[7]` | `r coef.table$p[7]` |
+| $\beta_8$   | Time12 * A | `r coef.table$Estimate[8]` | `r coef.table$Robust.S.E.[8]` | `r coef.table$p[8]` |
+For coefficients $\beta_5$ - $\beta_8$, the covariate is the interaction between time and treatment with Auranofin.
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
 
+#TODO: Describe differences in estimates of error.
+
 #### Which approach do you prefer and why?
+
+#TODO: Marginal. Less opportunity for false positive (check)
 
 ### 4a. Include in your code a Wald test of the joint hypothesis that there is no effect of auranofin compared with placebo at all three of weeks 4, 8 and 12. Run this PROC GENMOD analysis and provide the PROC GENMOD code used, as well as the estimates of the parameters in the mean part of the model obtained, the standard errors for these estimates, p-values for tests that each parameter equals zero, and the p-value from the Wald test of joint hypothesis.
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
 <!-- For aods3::wald.test in R, specify the Terms to run the test for, not the L matrix-->
 
-Testing $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
+Testing $\beta_{6} = \beta_{7} = \beta_{8} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$, where:
 
 $$
-L\beta = 
+L\hat{\beta} = 
 \begin{pmatrix}
   1 & 0 & 0 \\
   0 & 1 & 0 \\
   0 & 0 & 1
 \end{pmatrix}
 \begin{pmatrix}
-  \beta_{5} \\
-  \beta_{6} \\
-  \beta_{7}
+  \hat{\beta_{6}} \\
+  \hat{\beta_{7}} \\
+  \hat{\beta_{8}}
 \end{pmatrix}
 $$
-```{r joint-wald-test, echo = TRUE, eval = TRUE}
-arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1], # The vector of parameter estimates (betas)
-                                  varb = arthritis.gee$robust.variance, # The variance-covariance matrix
-                                  Terms = c(6:8)) # One ore more coefficients to test
+
+For this Wald test, I relied on the previous marginal model estimates and variance-covariance matrix. For parameter estimates, standard errors, and p-values of the $\beta=0$ for individual parameters, see table in the answer to 3(a), above.
+```{r joint-wald-test, echo = TRUE}
+# For the call to aods3::wald.test:
+#   b     : The vector of parameter estimates (betas)
+#   varb  : The variance-covariance matrix
+#   Terms : Index of one ore more coefficients to test
+arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1],
+                                  varb = arthritis.gee$robust.variance,
+                                  Terms = c(6:8))
 ```
+For the joint hypothesis, $W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$ and $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$. We thus reject the null hypothesis of $\beta_{6} = \beta_{7} = \beta_{8} = 0$.
 
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
+
+The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significnat ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the week 4 measurement was also significant, while effects of Auranofin treatment on other weeks were not.
+
+#TODO: Add log-odds ratio (or something of that ilk) interpretation based on T4 * X estimate
 
 #### c. The default test of the joint hypothesis within SAS (obtained by using the TYPE3 option without the WALD option) is not a Wald test. Review the SAS documentation and identify what type of test it is and why SAS uses it as the default rather than the Wald test.
 
@@ -322,7 +352,7 @@ arthritis.s.gee <- gee(status ~ sex + time + time:X,
                      family = binomial,
                      corstr = "unstructured")
 arthritis.s.gee.coef <- data.frame(coef(summary(arthritis.s.gee)))
-arthritis.s.gee.coef$p <- 2*pnorm(abs(arthritis.s.gee.coef[, 5]), lower.tail = FALSE)
+arthritis.s.gee.coef$p <- 2*pnorm(q = abs(arthritis.s.gee.coef[, 5]), lower.tail = FALSE)
 ```
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
