@@ -207,6 +207,8 @@ Var(Y_{ij}|X_{ij}) = \mu_{ij}(1 - \mu_{ij}) \enspace \text{(Bernoulli variance, 
 $$
 3. Within-subject association has an unstructured log-odds ratio pattern:
 
+#TODO: Question asks for "independence working correlation matrix to describe the within-subject correlation structure (i.e. using the TYPE=IND on the REPEATED statement)" Update accordingly
+
 $$
 \text{log} OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
 $$
@@ -252,7 +254,7 @@ arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
-                     corstr = "unstructured"))
+                     corstr = "independence"))
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
 coef.table <- data.frame(arthritis.gee.coef)
@@ -324,6 +326,8 @@ The proclivity for the average Auranofin subject's arthritis status to change ov
 
 #### c. The default test of the joint hypothesis within SAS (obtained by using the TYPE3 option without the WALD option) is not a Wald test. Review the SAS documentation and identify what type of test it is and why SAS uses it as the default rather than the Wald test.
 
+#TODO: Check this
+
 ### 5. Another investigator questions whether it is appropriate to use an unstructured log odds ratio correlation structure. Now using PROC GENMOD, fit the same model but using an unstructured log odds ratio structure for the working association structure. Write out how your model formulation given in 2(a) changes under this alternative assumption. Describe whether the conclusions of your GEE analyses are sensitive to the change in association structure.
 
 ***
@@ -346,16 +350,20 @@ arthritis.gee.logOR.coef <- coef(summary(arthritis.gee.logOR))
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
 
 ```{r marginal-compare-sexes, echo = TRUE}
-arthritis.s.gee <- gee(status ~ sex + time + time:X,
+arthritis.s.gee <- suppressMessages(gee(status ~ sex + time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
-                     corstr = "unstructured")
+                     corstr = "independence"))
 arthritis.s.gee.coef <- data.frame(coef(summary(arthritis.s.gee)))
 arthritis.s.gee.coef$p <- 2*pnorm(q = abs(arthritis.s.gee.coef[, 5]), lower.tail = FALSE)
 ```
 
+#TODO: Describe the effect of sex (or lack thereof)
+
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
+
+#TODO: Write abstract
 
 ## Question 2
 ### The investigator at Center=1 is interested in characterizing the distribution of risk among subjects at her center. _In the following, only include the subset of subjects with Center=1 in the analysis._
@@ -400,6 +408,8 @@ for (c in factor.cols) {
 
 #### a) Provide an algebraic definition for a generalized linear marginal model in which the only effects are for the intercept and Year (as a continuous variable). Fit this model and provide a table from your SAS output which includes the estimates of the parameters in your model.
 
+#TODO: Write out marginal model
+
 ```{r skin-gee, include = FALSE, echo = TRUE}
 skin.gee <- gee(new.count ~ year,
                 id = id,
@@ -412,7 +422,15 @@ skin.gee.coef <- coef(skin.gee.summary)
 
 #TODO: Check the correlation structure for this model
 
+#TODO: Calculate p-values for parameter estimates
+
+#TODO: Create table with parameter estimates, standard errors, z-scores, p-values
+
 #### b) Provide an algebraic definition for a generalized linear mixed model (GLMM) in which the only fixed effects are for the intercept and Year (as a continuous variable), and the only random effect is the intercept. What is being assumed about how the distribution of risk among subjects changes with time?
+
+#TODO: Write out generalized linear mixed model
+
+#TODO: Describe assumptions about distribution of risk among subjects as it changes with time (i.e. there are no random effects, right?)
 
 #### c) Fit your chosen GLMM in SAS and provide the SAS code for the fitting the model (just provide the code from the PROC that you use). Provide a table from your SAS output which includes the estimates for the parameters in your GLMM, and provide careful interpretation of the Year term.
 
@@ -429,9 +447,17 @@ skin.glm.summary <- summary(skin.glmer)
 skin.glm.coef <- coef(skin.glm.summary)
 ```
 
+#TODO: Create table with parameter estimates, standard errors, z scores, p-values
+
+#TODO: Interpret the year term
+
 #### d) Are the estimates for the fixed intercept terms the same or different in the GLMM compared with the marginal model fitted in question 2a? Why are they the same or different?
 
+#TODO: Compare GEE and GLMM model parameter estimates for intercept. Probably different because GLMM model has random intercept while GEE does not.
+
 #### e) Use the parameter estimates from your GLMM and your model definition to characterize the distribution of expected counts of new skin cancers among subjects at center 1 during their first year of follow-up.
+
+#TODO: Calculate value based on parameter estimates. Need to use language appropriate for GLMM, i.e. subject-specific.
 
 ## Optional Extra Credit Problem
 <!--
@@ -461,7 +487,17 @@ colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatmen
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
+#TODO: Define the model
+#TODO: Define the hypothesis
+#TODO: Run the model, getting estimates and p-values
+#TODO: Interpret support or not for hypothesis
+
 ### 2. Is there an association between the pattern of change of nail lengths and gender and/or health club frequency in subjects taking terbinafine? This might indicate that this drug brings about relief more swiftly in some kinds of subject versus others.
+
+#TODO: Define the model
+#TODO: Define the hypothesis
+#TODO: Run the model, getting estimates and p-values
+#TODO: Interpret support or not for hypothesis
 
 ### 3. In answering these scientific questions of interest, clearly write out the analytic models you consider for answering these questions. Clearly outline your decision making process for how you selected your final models. Fit your chosen final models and report to the project investigators on the stated scientific questions of interest.
 
