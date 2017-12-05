@@ -268,26 +268,7 @@ arthritis.gee.coef <- coef(arthritis.gee.summary)
 <!--[HINT: Use the TYPE3 and WALD options together on the MODEL statement]-->
 <!-- For aods3::wald.test in R, specify the Terms to run the test for, not the L matrix-->
 
-```{r joint-wald-test, echo = TRUE, eval = TRUE}
-arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1],
-                                  varb = arthritis.gee$robust.variance,
-                                  Terms = c(6:8))
-
-L.matrix <- matrix(data = NA, nrow = 2, ncol = 8)
-L.matrix[1, ] <- c(0, 0, 0, 0, 0, 1, -1, 0)
-L.matrix[2, ] <- c(0, 0, 0, 0, 0, 1, 0, -1)
-arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1],
-                                  varb = arthritis.gee$robust.variance,
-                                  L = L.matrix)
-
-arthritis.one.wald <- wald.test(b = arthritis.gee.coef[, 1],
-                                  varb = arthritis.gee$robust.variance,
-                                  Terms = 6) # <- this gives same result as univariate test
-
-
-```
-
-Test $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
+Testing $\beta_{5} = \beta_{6} = \beta_{7} = 0$ via $W^2 = (L\hat{\beta})'\{L\widehat{Cov}(\hat{\beta})L'\}^{-1}(L\hat{\beta})$
 
 $$
 L\beta = 
@@ -302,12 +283,11 @@ L\beta =
   \beta_{7}
 \end{pmatrix}
 $$
-
-
-#QUESTION: How to get $\widehat{Cov}(\hat{\beta})$ from R?
-It's in gee$robust.variance
-
-***
+```{r joint-wald-test, echo = TRUE, eval = TRUE}
+arthritis.joint.wald <- wald.test(b = arthritis.gee.coef[, 1], # The vector of parameter estimates (betas)
+                                  varb = arthritis.gee$robust.variance, # The variance-covariance matrix
+                                  Terms = c(6:8)) # One ore more coefficients to test
+```
 
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
@@ -320,7 +300,7 @@ It's in gee$robust.variance
 #QUESTION: How to do log odds ratio for correlation structure in R, AND what is the structure being used in 2(a) for the association structure?
 ***
 
-```{r}
+```{r log-odds, eval = FALSE}
 # Modeled off example in genmod.R:
 
 arthritis.gee.logOR <- alr(status ~ time + time:X,
