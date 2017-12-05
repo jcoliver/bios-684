@@ -205,17 +205,14 @@ Note $T_{i2}$ is included only in an interaction effect ($T_{i2} \times X_i$). T
 $$
 Var(Y_{ij}|X_{ij}) = \mu_{ij}(1 - \mu_{ij}) \enspace \text{(Bernoulli variance, assuming no overdispersion, }\phi = 1 \text{)}
 $$
-3. Within-subject association has an unstructured log-odds ratio pattern:
-
-#TODO: Question asks for "independence working correlation matrix to describe the within-subject correlation structure (i.e. using the TYPE=IND on the REPEATED statement)" Update accordingly
+3. Within-subject association has an "independent" structure for the working correlation:
 
 $$
-\text{log} OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
-$$
-where
-
-$$
-OR(Y_{ij}, Y_{ik}) = \frac{Pr(Y_{ij} = 1, Y_{ik} = 1) \times Pr(Y_{ij} = 0, Y_{ik} = 0)}{Pr(Y_{ij} = 1, Y_{ik} = 0) \times Pr(Y_{ij} = 0, Y_{ik} = 1)}
+Corr(Y_{ij}, Y_{ik}) = 
+\begin{cases}
+  1, & j = k \\
+  0, & j \neq k
+\end{cases}
 $$
 
 #### b. The model includes the variable T as a main effect. What is being assumed about subjects’ arthritis status at weeks -1 and 0? Briefly critique this assumption.
@@ -333,6 +330,18 @@ The proclivity for the average Auranofin subject's arthritis status to change ov
 ***
 #QUESTION: How to do log odds ratio for correlation structure in R, AND what is the structure being used in 2(a) for the association structure?
 ***
+
+unstructured log-odds ratio pattern:
+
+$$
+\text{log} OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
+$$
+where
+
+$$
+OR(Y_{ij}, Y_{ik}) = \frac{Pr(Y_{ij} = 1, Y_{ik} = 1) \times Pr(Y_{ij} = 0, Y_{ik} = 0)}{Pr(Y_{ij} = 1, Y_{ik} = 0) \times Pr(Y_{ij} = 0, Y_{ik} = 1)}
+$$
+
 
 ```{r log-odds, eval = FALSE}
 # Modeled off example in genmod.R:
