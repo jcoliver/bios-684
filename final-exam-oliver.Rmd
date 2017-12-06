@@ -18,9 +18,10 @@ library("gee")
 # library("geepack")
 # library("contrast")
 library("aods3")
-library("lme4")
+# library("lme4")
 # install.packages("alr", repos="http://R-Forge.R-project.org")
 library("alr")
+library("nlme")
 ```
 
 ## Question 1
@@ -321,7 +322,7 @@ For the joint hypothesis, $W^2 = `r round(arthritis.joint.wald$result$chi2["chi2
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
 
-The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significnat ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the change over time at the week 4 measurement was also significant (`r coef.table$p[6]`), while effects of Auranofin treatment on other weeks were not. The estimate for this interaction effect between Auranofin and time in week 4 is `r coef.table$Estimate[6]`. Inference based on this parameter requires comparing the week 4 response for an average subject in the placebo group:
+The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significant ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the change over time at the week 4 measurement was also significant (`r coef.table$p[6]`), while effects of Auranofin treatment on other weeks were not. The estimate for this interaction effect between Auranofin and time in week 4 is `r coef.table$Estimate[6]`. Inference based on this parameter requires comparing the week 4 response for an average subject in the placebo group:
 
 $$
 logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2}
@@ -332,9 +333,7 @@ $$
 logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_6 T_{i2} \times X_i
 $$
 
-The odds ratio between average subjects in placebo and treatment groups is then e^`r coef.table$Estimate[6]`^ = `r round(exp(coef.table$Estimate[6]), 3)`.
-
-#TODO: Add log-odds ratio (or something of that ilk) interpretation based on T4 * X estimate
+The odds ratio between average subjects in placebo and treatment groups is then e^$\beta_{6}$ = e^`r coef.table$Estimate[6]`^ = `r round(exp(coef.table$Estimate[6]), 3)`. That is, treatment with Auranofin causes a `r round(exp(coef.table$Estimate[6]), 3)`-fold increase in the odds of an average subject to have a "good" status in week 4 compared with the average subject receiving the placebo treatment.
 
 #### c. The default test of the joint hypothesis within SAS (obtained by using the TYPE3 option without the WALD option) is not a Wald test. Review the SAS documentation and identify what type of test it is and why SAS uses it as the default rather than the Wald test.
 
@@ -517,8 +516,7 @@ skin.glm.table$p.text[skin.glm.table$Pr...z.. < 0.001] <- "< 0.001"
 
 ## Optional Extra Credit Problem
 <!--
-(This problem is meant to offer another chance to demonstrate understanding of some of the material on the mid-term. If you choose to do this problem and your score is
-higher than your mid-term grade, then your mid-term grade will be reweighted to be New Midterm Grade = .7*Old Midterm Grade + .3*Extra Credit Problem).
+(This problem is meant to offer another chance to demonstrate understanding of some of the material on the mid-term. If you choose to do this problem and your score is higher than your mid-term grade, then your mid-term grade will be reweighted to be New Midterm Grade = .7*Old Midterm Grade + .3*Extra Credit Problem).
 
 Onychomycosis, popularly known as toenail fungus, is a fairly common condition that not only can disfigure and sometimes destroy the nail but that also can lead to social and self-image issues for sufferers. Tight-fitting shoes or hosiery, the sharing of common facilities such as showers and locker rooms, and toenail polish are all thought to be implicated in the development of onychomycosis. This question relates to data from a study conducted by researchers that recruited sufferers of a particular type of onychomycosis, dermatophyte onychomycosis. The study conducted by the researchers was focused on comparison of two oral medications, terbinafine (given as 250 mg/day, denoted as treatment 1 below) and itraconazole (given as 200 mg/day, denoted as treatment 2 below). The trial was conducted as follows. 200 sufferers of advanced toenail dermatophyte onychomycosis in the big toe were recruited, and each saw a physician, who removed the afflicted nail. Each subject was then randomly assigned to treatment with either terbinafine (treatment 1) or itraconazole (treatment 2). Immediately prior to beginning treatment, the length of the unafflicted part of the toenail (which was hence not removed) was recorded (in millimeters). Then at 1 month, 2 months, 3 months, 6 months, and 12 months, each subject returned, and the length of the unafflicted part of the nail was measured again. A longer unafflicted nail length is a better outcome. Also recorded on each subject was gender and an indicator of the frequency with which the subject visited a gym or health club (and hence might use shared locker rooms and/or showers).
 
@@ -540,9 +538,6 @@ toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = "")
 colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatment")
 
 # Create factor columns
-toenail.data$month.cat <- factor(toenail.data$month, 
-                                 levels = c("1", "2", "3", "6", "12"))
-
 toenail.data$treat.cat <- 0
 toenail.data$treat.cat[toenail.data$treatment == 2] <- 1
 toenail.data$treat.cat <- factor(toenail.data$treat.cat, levels = c(0, 1))
@@ -553,38 +548,14 @@ _In answering these scientific questions of interest, clearly write out the anal
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
-The model, testing the effect of terbinafine and itraconazole on nail growth:
+The linear mixed effects model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
 $$
-E(Y_{ij}) = \beta_1 + \beta_2X_{1i} \times Trt_i + \beta_2X_{2i} \times Trt_i + \beta_2X_{3i} \times Trt_i + \beta_2X_{4i} \times Trt_i + \beta_2X_{5i} \times Trt_i
+E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
 $$
 Where:
 $$
 \begin{array}{l}
-  X_{1i} = 
-  \begin{cases}
-    1, & \text{if measurement at one month} \\
-    0, & \text{otherwise}
-  \end{cases} \\
-  X_{2i} = 
-  \begin{cases}
-    1, & \text{if measurement at 2 months} \\
-    0, & \text{otherwise}
-  \end{cases} \\
-  X_{3i} = 
-  \begin{cases}
-    1, & \text{if measurement at 3 months} \\
-    0, & \text{otherwise}
-  \end{cases} \\
-  X_{4i} = 
-  \begin{cases}
-    1, & \text{if measurement at 6 months} \\
-    0, & \text{otherwise}
-  \end{cases} \\
-  X_{5i} = 
-  \begin{cases}
-    1, & \text{if measurement at 12 months} \\
-    0, & \text{otherwise}
-  \end{cases} \\
+  Month_{ij} = \text{Month of measurement} \\
   Trt_i = 
   \begin{cases}
     1, & \text{if subject received itraconazole treatment} \\
@@ -592,13 +563,45 @@ $$
   \end{cases}
 \end{array}
 $$
-
 (Note the main effect of treatment is not included in the model, as subjects were randomized before treatment, thus we can appropriately assume the mean length at month 0 is the same in the two treatment groups)
+  
+And $b_{1i}$ and $b_{2i}$ model the random intercept and slope, respectively, of between-subject variation.
 
-#TODO: Add assumptions
-#TODO: Define the hypothesis
+Assumptions on between-subject variation:
+$$
+b_{i} \sim MVN(0, G) \\
+G = 
+\begin{pmatrix}
+  g_{11} & g_{12} \\
+  g_{21} & g_{22}
+\end{pmatrix} =
+\begin{pmatrix}
+  Var(b_{1i}) & Cov(b_{1i}, b_{2i}) \\
+  Cov(b_{1i}, b_{2i}) & Var(b_{2i})
+\end{pmatrix}
+$$
+
+Assumptions on within-subject error:
+$$
+\varepsilon_{ij} \sim N(0, R_{i}) \\
+R_{i} = \sigma^2I \enspace \text{(}I\text{ is an }n_i \times n_i \text{identity matrix)}
+$$
+The assumptions around $\varepsilon_{ij}$ assert that the errors _within_ a subject are uncorrelated and homogeneously distributed (i.e. conditional independence).
+
+**Hypothesis:** $H_{0}: \beta_{3} = 0$
+
+```{r toenail-lmm-treatment, echo = TRUE}
+toenail.lmm1 <- lme(fixed = length ~ month + month * treat.cat,
+                   random = ~1 + month | id,
+                   data = toenail.data)
+toenail.lmm1.coef <- coef(summary(toenail.lmm1))
+```
+
 #TODO: Run the model, getting estimates and p-values
+#TODO: Use autoregressive covariance structure?
 #TODO: Interpret support or not for hypothesis
+
+
 
 ### 2. Is there an association between the pattern of change of nail lengths and gender and/or health club frequency in subjects taking terbinafine? This might indicate that this drug brings about relief more swiftly in some kinds of subject versus others.
 
