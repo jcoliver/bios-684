@@ -548,11 +548,9 @@ _In answering these scientific questions of interest, clearly write out the anal
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
-The linear mixed effects model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
-$$
-E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
-$$
-Where:
+For this question, I chose to first compare two linear mixed models, a random intercept model and a random intercept and slope model, selecting the best model based on a likelihood ratio test.
+
+In both models, the fixed effects of time and treatment are the same:
 $$
 \begin{array}{l}
   Month_{ij} = \text{Month of measurement} \\
@@ -564,46 +562,91 @@ $$
 \end{array}
 $$
 (Note the main effect of treatment is not included in the model, as subjects were randomized before treatment, thus we can appropriately assume the mean length at month 0 is the same in the two treatment groups)
-  
-And $b_{1i}$ and $b_{2i}$ model the random intercept and slope, respectively, of between-subject variation.
 
-Assumptions on between-subject variation:
+And within-subject error:
 $$
-b_{i} \sim MVN(0, G) \\
-G = 
-\begin{pmatrix}
-  g_{11} & g_{12} \\
-  g_{21} & g_{22}
-\end{pmatrix} =
-\begin{pmatrix}
-  Var(b_{1i}) & Cov(b_{1i}, b_{2i}) \\
-  Cov(b_{1i}, b_{2i}) & Var(b_{2i})
-\end{pmatrix}
-$$
-
-Assumptions on within-subject error:
-$$
-\varepsilon_{ij} \sim N(0, R_{i}) \\
-R_{i} = \sigma^2I \enspace \text{(}I\text{ is an }n_i \times n_i \text{identity matrix)}
+\begin{array}{l}
+  \varepsilon_{ij} \sim N(0, R_{i}) \\
+  R_{i} = \sigma^2I \enspace \text{(}I\text{ is an }n_i \times n_i \text{identity matrix)}
+\end{array}
 $$
 The assumptions around $\varepsilon_{ij}$ assert that the errors _within_ a subject are uncorrelated and homogeneously distributed (i.e. conditional independence).
 
-**Hypothesis:** $H_{0}: \beta_{3} = 0$
+The random intercept and slopes model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
+$$
+where $b_{1i}$ and $b_{2i}$ model the random intercept and slope, respectively, of between-subject variation.
 
-```{r toenail-lmm-treatment, echo = TRUE}
-toenail.lmm1 <- lme(fixed = length ~ month + month * treat.cat,
-                   random = ~1 + month | id,
-                   data = toenail.data)
-toenail.lmm1.coef <- coef(summary(toenail.lmm1))
+Assumptions on between-subject variation for random intercepts and slopes model:
+$$
+\begin{array}{l}
+  b_{i} \sim MVN(0, G) \\
+  G = 
+    \begin{pmatrix}
+      g_{11} & g_{12} \\
+      g_{21} & g_{22}
+    \end{pmatrix} =
+    \begin{pmatrix}
+      Var(b_{1i}) & Cov(b_{1i}, b_{2i}) \\
+      Cov(b_{1i}, b_{2i}) & Var(b_{2i})
+    \end{pmatrix}
+\end{array}
+$$
+The random intercept model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i}
+$$
+This assumes $Var(b_{2i}) = 0$ and $Cov(b_{1i}, b_{2i}) = 0$, i.e. there is no random effect on slope.
+
+Selecting between these mdoels, I run a linear mixed-effect model and compare the likelihoods:
+
+```{r toenail-lmm-lrt, echo = TRUE}
+# Random intercept model
+toenail.lmm.1random <- lme(fixed = length ~ month + month * treat.cat,
+                           random = ~1 | id,
+                           data = toenail.data)
+
+# Random intercept & slopes model
+toenail.lmm.2random <- lme(fixed = length ~ month + month * treat.cat,
+                           random = ~1 + month| id,
+                           data = toenail.data)
+
+# Calculate statistic for LRT
+lrt.stat <- -2*(toenail.lmm.1random$logLik - toenail.lmm.2random$logLik)
+lrt.p <- pchisq(q = lrt.stat, df = 2, lower.tail = FALSE)
+lrt.p.text <- as.character(round(lrt.p, 3))
+if (lrt.p < 0.001) {
+  lrt.p.text <- "< 0.001"
+}
 ```
 
-#TODO: Run the model, getting estimates and p-values
-#TODO: Use autoregressive covariance structure?
-#TODO: Interpret support or not for hypothesis
+The likeklihood ratio statistic is `r round(lrt.stat, 3)`. Comparing this with a $\chi^2$ distribution with 2 degrees of freedom ($\chi^2_{2, 0.05} = `r round(pchisq(q = 0.05, df = 2, lower.tail = FALSE), 3)`$), the likelihood ratio statistic is significant ($p `r lrt.p.text`$). Therefore, including the random slope in the model provides a significantly better fit than the model with random intercept alone. For all subsequent tests, the models will include random intercept and slopes.
 
+To test the investigator's question, recall the linear mixed model with random intercept and slope is:
 
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
+$$
+and the **hypothesis:** $H_{0}: \beta_{3} = 0$.
+
+```{r toenail-lmm-treatment}
+toenail.lmm.2random.coef <- coef(summary(toenail.lmm.2random))
+toenail.lmm.2random.table <- data.frame(round(toenail.lmm.2random.coef, 3))
+toenail.lmm.2random.table$p.text <- paste0("= ", toenail.lmm.2random.table$p.value)
+toenail.lmm.2random.table$p.text[toenail.lmm.2random.table$p.value < 0.001] <- "< 0.001"
+```
+
+The REML estimate of the $\beta_3$ coefficient is `r toenail.lmm.2random.table$Value[4]`. This value is significantly different from 0 ($p `r toenail.lmm.2random.table$p.text[4]`$), so we reject the null hypothesis, $H_{0}: \beta_{3} = 0$ of no effect of treatment on rate of nail growth. These results indicate that on average, subjects receiving the itraconazole treatment experienced an increased rate of growth relative to subjects receiving the terbinafine treatment. **On average, subjects in the itraconazole treatment experienced nail growth of `r toenail.lmm.2random.table$Value[4]` mm per month _more_ than subjects in the terbinafine treatment.**
 
 ### 2. Is there an association between the pattern of change of nail lengths and gender and/or health club frequency in subjects taking terbinafine? This might indicate that this drug brings about relief more swiftly in some kinds of subject versus others.
+
+```{r prepare-terbin-data}
+terbin.data <- toenail.data[toenail.data$treat.cat == 0, ]
+terbin.size <- length(unique(terbin.data$id))
+```
+
+The question focuses only on those subjects in the terbinafine treatment, so the data are restricted to only those subjects who received terbinafine (N = `r terbin.size`).
 
 #TODO: Define the model
 #TODO: Define the hypothesis
