@@ -19,6 +19,7 @@ library("gee")
 # library("contrast")
 library("aods3")
 library("lme4")
+# install.packages("alr", repos="http://R-Forge.R-project.org")
 library("alr")
 ```
 
@@ -445,7 +446,21 @@ for (c in factor.cols) {
 
 #### a) Provide an algebraic definition for a generalized linear marginal model in which the only effects are for the intercept and Year (as a continuous variable). Fit this model and provide a table from your SAS output which includes the estimates of the parameters in your model.
 
-#TODO: Write out marginal model
+1. Mean response:
+$$
+log(\mu_{ij}) = \beta_1 + \beta_2 \times Year_{ij}
+$$
+
+2. Variance:
+$$
+Var(Y_{ij}|X_{ij}) = \phi(\mu_{ij})
+$$
+
+3. Within-individual correlation structure:
+$$
+Corr(Y_{ij}, Y_{ik}) = \alpha_{jk}
+$$
+(compound symmetric, or exchangable; autoregressive might also be appropriate, though)
 
 ```{r skin-gee, include = FALSE, echo = TRUE}
 skin.gee <- gee(new.count ~ year,
@@ -454,14 +469,17 @@ skin.gee <- gee(new.count ~ year,
                 family = poisson,
                 corstr = "exchangeable")
 skin.gee.summary <- summary(skin.gee)
-skin.gee.coef <- coef(skin.gee.summary)
+skin.gee.coef <- data.frame(coef(skin.gee.summary))
+skin.gee.coef$p <- 2*pnorm(q = abs(skin.gee.coef[, 5]), lower.tail = FALSE)
+skin.gee.table <- round(skin.gee.coef, 3)
+skin.gee.table$p <- as.character(skin.gee.table$p)
+skin.gee.table$p[skin.gee.table$p < 0.001] <- "< 0.001"
 ```
 
-#TODO: Check the correlation structure for this model
-
-#TODO: Calculate p-values for parameter estimates
-
-#TODO: Create table with parameter estimates, standard errors, z-scores, p-values
+| Coefficient | Covariate | Estimate | S.E.        | Z | Pr($\beta$ = 0) |
+|:------------|:---------:|:--------:|:-----------:|:-:|:---------------:|
+| $\beta_1$   | Intercept | `r skin.gee.table$Estimate[1]` | `r skin.gee.table$Robust.S.E.[1]` | `r skin.gee.table$Robust.z[1]` | `r skin.gee.table$p[1]` |
+| $\beta_2$   | Year      | `r skin.gee.table$Estimate[2]` | `r skin.gee.table$Robust.S.E.[2]` | `r skin.gee.table$Robust.z[2]` | `r skin.gee.table$p[2]` |
 
 #### b) Provide an algebraic definition for a generalized linear mixed model (GLMM) in which the only fixed effects are for the intercept and Year (as a continuous variable), and the only random effect is the intercept. What is being assumed about how the distribution of risk among subjects changes with time?
 
@@ -482,9 +500,10 @@ skin.glmer <- glmer(new.count ~ 1 + year + (1 | id),
                     family = poisson(link = "log"))
 skin.glm.summary <- summary(skin.glmer)
 skin.glm.coef <- coef(skin.glm.summary)
+skin.glm.table <- data.frame(round(skin.glm.coef, 3))
+skin.glm.table$p.text <- as.character(skin.glm.table$Pr...z..)
+skin.glm.table$p.text[skin.glm.table$Pr...z.. < 0.001] <- "< 0.001"
 ```
-
-#TODO: Create table with parameter estimates, standard errors, z scores, p-values
 
 #TODO: Interpret the year term
 
@@ -519,6 +538,14 @@ toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = "")
 
 # Assign column names
 colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatment")
+
+# Create factor columns
+toenail.data$month.cat <- factor(toenail.data$month, 
+                                 levels = c("1", "2", "3", "6", "12"))
+
+toenail.data$treat.cat <- 0
+toenail.data$treat.cat[toenail.data$treatment == 2] <- 1
+toenail.data$treat.cat <- factor(toenail.data$treat.cat, levels = c(0, 1))
 ```
 
 _In answering these scientific questions of interest, clearly write out the analytic models you consider for answering these questions. Clearly outline your decision making process for how you selected your final models. Fit your chosen final models and report to the project investigators on the stated scientific questions of interest._
@@ -526,7 +553,49 @@ _In answering these scientific questions of interest, clearly write out the anal
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
-#TODO: Define the model
+The model, testing the effect of terbinafine and itraconazole on nail growth:
+$$
+E(Y_{ij}) = \beta_1 + \beta_2X_{1i} \times Trt_i + \beta_2X_{2i} \times Trt_i + \beta_2X_{3i} \times Trt_i + \beta_2X_{4i} \times Trt_i + \beta_2X_{5i} \times Trt_i
+$$
+Where:
+$$
+\begin{array}{l}
+  X_{1i} = 
+  \begin{cases}
+    1, & \text{if measurement at one month} \\
+    0, & \text{otherwise}
+  \end{cases} \\
+  X_{2i} = 
+  \begin{cases}
+    1, & \text{if measurement at 2 months} \\
+    0, & \text{otherwise}
+  \end{cases} \\
+  X_{3i} = 
+  \begin{cases}
+    1, & \text{if measurement at 3 months} \\
+    0, & \text{otherwise}
+  \end{cases} \\
+  X_{4i} = 
+  \begin{cases}
+    1, & \text{if measurement at 6 months} \\
+    0, & \text{otherwise}
+  \end{cases} \\
+  X_{5i} = 
+  \begin{cases}
+    1, & \text{if measurement at 12 months} \\
+    0, & \text{otherwise}
+  \end{cases} \\
+  Trt_i = 
+  \begin{cases}
+    1, & \text{if subject received itraconazole treatment} \\
+    0, & \text{if subject received terbinafine treatment}
+  \end{cases}
+\end{array}
+$$
+
+(Note the main effect of treatment is not included in the model, as subjects were randomized before treatment, thus we can appropriately assume the mean length at month 0 is the same in the two treatment groups)
+
+#TODO: Add assumptions
 #TODO: Define the hypothesis
 #TODO: Run the model, getting estimates and p-values
 #TODO: Interpret support or not for hypothesis
