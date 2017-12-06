@@ -19,7 +19,7 @@ library("gee")
 # library("contrast")
 library("aods3")
 library("lme4")
-# library("alr")
+library("alr")
 ```
 
 ## Question 1
@@ -247,11 +247,12 @@ The increasing number of missing observations over time suggests that subjects _
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
 
 ```{r marginal-model-arthritis, echo = TRUE}
+# corstr = "independence" >> effectively *no* within-subject correlation
 arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
-                     corstr = "independence")) # Effectively *no* within-subject correlation
+                     corstr = "independence"))
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
 coef.table <- data.frame(arthritis.gee.coef)
@@ -319,21 +320,37 @@ For the joint hypothesis, $W^2 = `r round(arthritis.joint.wald$result$chi2["chi2
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
 
-The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significnat ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the week 4 measurement was also significant, while effects of Auranofin treatment on other weeks were not.
+The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significnat ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the change over time at the week 4 measurement was also significant (`r coef.table$p[6]`), while effects of Auranofin treatment on other weeks were not. The estimate for this interaction effect between Auranofin and time in week 4 is `r coef.table$Estimate[6]`. Inference based on this parameter requires comparing the week 4 response for an average subject in the placebo group:
+
+$$
+logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2}
+$$
+
+with an average subject in the Auranofin treatment:
+$$
+logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_6 T_{i2} \times X_i
+$$
+
+The odds ratio between average subjects in placebo and treatment groups is then e^`r coef.table$Estimate[6]`^ = `r round(exp(coef.table$Estimate[6]), 3)`.
 
 #TODO: Add log-odds ratio (or something of that ilk) interpretation based on T4 * X estimate
 
 #### c. The default test of the joint hypothesis within SAS (obtained by using the TYPE3 option without the WALD option) is not a Wald test. Review the SAS documentation and identify what type of test it is and why SAS uses it as the default rather than the Wald test.
 
-#TODO: Check this
+The default test is a likelihood ratio test ("score test" per SAS documentation). LRTs are likely used as default because Wald tests may be too liberal with smaller samples. See: [https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect035.htm](https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect035.htm).
 
 ### 5. Another investigator questions whether it is appropriate to use an unstructured log odds ratio correlation structure. Now using PROC GENMOD, fit the same model but using an unstructured log odds ratio structure for the working association structure. Write out how your model formulation given in 2(a) changes under this alternative assumption. Describe whether the conclusions of your GEE analyses are sensitive to the change in association structure.
 
-***
-#QUESTION: How to do log odds ratio for correlation structure in R, AND what is the structure being used in 2(a) for the association structure?
-***
+The investigator is interested in modeling within-subject correlation with unstructured log-odds ratio pattern, rather than a working correlation matrix. So point 3, which was:
 
-unstructured log-odds ratio pattern:
+$$
+Corr(Y_{ij}, Y_{ik}) = 
+\begin{cases}
+  1, & j = k \\
+  0, & j \neq k
+\end{cases}
+$$
+We instead model within-subject correlation via:
 
 $$
 \text{log} OR(Y_{ij}, Y_{ik}|X_{ij}, X_{ik}) = \alpha_{jk}
@@ -343,20 +360,29 @@ where
 $$
 OR(Y_{ij}, Y_{ik}) = \frac{Pr(Y_{ij} = 1, Y_{ik} = 1) \times Pr(Y_{ij} = 0, Y_{ik} = 0)}{Pr(Y_{ij} = 1, Y_{ik} = 0) \times Pr(Y_{ij} = 0, Y_{ik} = 1)}
 $$
+This releases the constraints imposed by binary response variables. To test this, I tried using the `alr` function in the `alr` package:
 
-
-```{r log-odds, eval = FALSE}
-# Modeled off example in genmod.R:
-
-arthritis.gee.logOR <- alr(status ~ time + time:X,
+```{r log-odds-evaluated, include = FALSE}
+# Produces S.E. = 0 and Z = Inf for all coefficients
+arthritis.gee.logOR <- suppressMessages(alr(status ~ time + time:X,
                            id = id,
                            data = arthritis.long,
                            depm = "exchangeable",
-                           ainit = 0.01)
+                           ainit = 0.01))
 arthritis.gee.logOR.coef <- coef(summary(arthritis.gee.logOR))
-
-# Produces SE = 0 and Z = Inf for all coefficients
 ```
+
+```{r log-odds-echoed, eval = FALSE, echo = TRUE}
+# Produces S.E. = 0 and Z = Inf for all coefficients
+arthritis.gee.logOR <- suppressMessages(alr(status ~ time + time:X,
+                           id = id,
+                           data = arthritis.long,
+                           depm = "exchangeable",
+                           ainit = 0.01))
+arthritis.gee.logOR.coef <- coef(summary(arthritis.gee.logOR))
+```
+
+However, I was unable to assess the impact of this association structure on the model because the `alr` function returned uninformative standard errors and z scores (0 and -Inf/Inf, respectively). While the parameter estimates between the two within-subject correlation models were identical (as expected), I suspect the standard errors were not. Accounting for within-subject correlation with an unstructured log-odds ratio correlation structure likely would increase the standard errors for parameter estimates, although perhaps not so much as to qualitatively change the inference.
 
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
 
@@ -495,6 +521,8 @@ toenail.data <- read.delim(file = "data/toenail.txt", header = FALSE, sep = "")
 colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatment")
 ```
 
+_In answering these scientific questions of interest, clearly write out the analytic models you consider for answering these questions. Clearly outline your decision making process for how you selected your final models. Fit your chosen final models and report to the project investigators on the stated scientific questions of interest._
+
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
@@ -510,7 +538,6 @@ colnames(toenail.data) <- c("id", "freq", "gender", "month", "length", "treatmen
 #TODO: Run the model, getting estimates and p-values
 #TODO: Interpret support or not for hypothesis
 
-### 3. In answering these scientific questions of interest, clearly write out the analytic models you consider for answering these questions. Clearly outline your decision making process for how you selected your final models. Fit your chosen final models and report to the project investigators on the stated scientific questions of interest.
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/final-exam-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/final-exam-oliver.Rmd).
