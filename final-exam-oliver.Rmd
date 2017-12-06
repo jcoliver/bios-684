@@ -508,7 +508,7 @@ skin.glm.table$p.text[skin.glm.table$Pr...z.. < 0.001] <- "< 0.001"
 
 #### d) Are the estimates for the fixed intercept terms the same or different in the GLMM compared with the marginal model fitted in question 2a? Why are they the same or different?
 
-#TODO: Compare GEE and GLMM model parameter estimates for intercept. Probably different because GLMM model has random intercept while GEE does not.
+#TODO: Compare GEE and GLMM model parameter estimates for intercept. Probably different because GLMM model has random intercepts while GEE does not.
 
 #### e) Use the parameter estimates from your GLMM and your model definition to characterize the distribution of expected counts of new skin cancers among subjects at center 1 during their first year of follow-up.
 
@@ -548,7 +548,7 @@ _In answering these scientific questions of interest, clearly write out the anal
 ### The researchers had several questions, which they stated to you as follows:
 ### 1. Is there a difference in the pattern of change of lengths of the unafflicted part of the nail between subjects receiving terbinafine and itraconazole over a 12 month period? Does one treatment show results more quickly?
 
-For this question, I chose to first compare two linear mixed models, a random intercept model and a random intercept and slope model, selecting the best model based on a likelihood ratio test.
+For this question, I chose to first compare two linear mixed models, a random intercepts model and a random intercepts and slopes model, selecting the best model based on a likelihood ratio test.
 
 In both models, the fixed effects of time and treatment are the same:
 $$
@@ -572,11 +572,11 @@ $$
 $$
 The assumptions around $\varepsilon_{ij}$ assert that the errors _within_ a subject are uncorrelated and homogeneously distributed (i.e. conditional independence).
 
-The random intercept and slopes model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
+The random intercepts and slopes model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
 $$
 E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
 $$
-where $b_{1i}$ and $b_{2i}$ model the random intercept and slope, respectively, of between-subject variation.
+where $b_{1i}$ and $b_{2i}$ model the random intercepts and slopes, respectively, of between-subject variation.
 
 Assumptions on between-subject variation for random intercepts and slopes model:
 $$
@@ -593,7 +593,7 @@ $$
     \end{pmatrix}
 \end{array}
 $$
-The random intercept model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
+The random intercepts model, testing the effect of terbinafine and itraconazole on nail growth, treating time as a continuous predictor:
 $$
 E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i}
 $$
@@ -602,16 +602,18 @@ This assumes $Var(b_{2i}) = 0$ and $Cov(b_{1i}, b_{2i}) = 0$, i.e. there is no r
 Selecting between these mdoels, I run a linear mixed-effect model and compare the likelihoods:
 
 ```{r toenail-lmm-lrt, echo = TRUE}
-# Random intercept model
+# Random intercepts model
 toenail.lmm.1random <- lme(fixed = length ~ month + month * treat.cat,
                            random = ~1 | id,
                            data = toenail.data)
 
-# Random intercept & slopes model
+# Random intercepts & slopes model
 toenail.lmm.2random <- lme(fixed = length ~ month + month * treat.cat,
                            random = ~1 + month| id,
                            data = toenail.data)
+```
 
+```{r toenail-lmm-lrt-result}
 # Calculate statistic for LRT
 lrt.stat <- -2*(toenail.lmm.1random$logLik - toenail.lmm.2random$logLik)
 lrt.p <- pchisq(q = lrt.stat, df = 2, lower.tail = FALSE)
@@ -621,9 +623,9 @@ if (lrt.p < 0.001) {
 }
 ```
 
-The likeklihood ratio statistic is `r round(lrt.stat, 3)`. Comparing this with a $\chi^2$ distribution with 2 degrees of freedom ($\chi^2_{2, 0.05} = `r round(pchisq(q = 0.05, df = 2, lower.tail = FALSE), 3)`$), the likelihood ratio statistic is significant ($p `r lrt.p.text`$). Therefore, including the random slope in the model provides a significantly better fit than the model with random intercept alone. For all subsequent tests, the models will include random intercept and slopes.
+The likeklihood ratio statistic is `r round(lrt.stat, 3)`. Comparing this with a $\chi^2$ distribution with 2 degrees of freedom, the likelihood ratio statistic is significant ($p `r lrt.p.text`$). Therefore, including the random slopes in the model provides a significantly better fit than the model with random intercepts alone. For all subsequent tests, the models will include random intercepts and slopes.
 
-To test the investigator's question, recall the linear mixed model with random intercept and slope is:
+To test the investigator's question, recall the linear mixed model with random intercepts and slopes is:
 
 $$
 E(Y_{ij}) = \beta_{1} + \beta_{2}Month_{ij} + \beta_{3}Month_{ij} \times Trt_{i} + b_{1i} + b_{2i} \times Month_{ij}
@@ -646,13 +648,94 @@ terbin.data <- toenail.data[toenail.data$treat.cat == 0, ]
 terbin.size <- length(unique(terbin.data$id))
 ```
 
-The question focuses only on those subjects in the terbinafine treatment, so the data are restricted to only those subjects who received terbinafine (N = `r terbin.size`).
+The question focuses only on those subjects in the terbinafine treatment, so the data are restricted to only those subjects who received terbinafine (N = `r terbin.size`). The first thing is to determine whether to include a random slopes term in the model. The linear mixed effects models are:
 
-#TODO: Define the model
-#TODO: Define the hypothesis
-#TODO: Run the model, getting estimates and p-values
-#TODO: Interpret support or not for hypothesis
+Random intercepts:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i}
+$$
 
+Random intercepts and slopes:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+$$
+
+Where:
+$$
+\begin{array}{l}
+  Month_{ij} = \text{Month of measurement} \\
+  Gender_i = 
+  \begin{cases}
+    0, & \text{female} \\
+    1, & \text{male}
+  \end{cases} \\
+  Freq_i = 
+  \begin{cases}
+    0, & \text{visits health club once a week or less} \\
+    1, & \text{visits health club more than once a week}
+  \end{cases} \\
+  b_{1i} = \text{random effect of intercept for subject }i \\
+  b_{2i} = \text{random effect of slope for subject }i
+\end{array}
+$$
+Note in the random intercepts model, $b_{2i} = 0$.
+
+Comparing these two models with a likelihood ratio test:
+
+```{r terbin-lmm-lrt, echo = TRUE}
+# Random intercepts model
+terbin.lmm.1random <- lme(fixed = length ~ month + gender + freq + month * gender + month * freq,
+                           random = ~1 | id,
+                           data = terbin.data)
+
+# Random intercepts & slopes model
+terbin.lmm.2random <- lme(fixed = length ~ month + gender + freq + month * gender + month * freq,
+                           random = ~1 + month| id,
+                           data = terbin.data)
+```
+
+```{r terbin-lmm-lrt-results}
+# Calculate statistic for LRT
+lrt.terbin.stat <- -2*(terbin.lmm.1random$logLik - terbin.lmm.2random$logLik)
+lrt.terbin.stat.text <- as.character(round(lrt.terbin.stat, 3))
+lrt.terbin.p <- pchisq(q = lrt.terbin.stat, df = 2, lower.tail = FALSE)
+lrt.terbin.p.text <- as.character(round(lrt.terbin.p, 3))
+if (lrt.terbin.p < 0.001) {
+  lrt.terbin.p.text <- "< 0.001"
+}
+```
+
+As previously, the random intercepts and slopes model provided a significantly better fit than did the random intercepts model ($2\Delta lnL = `r lrt.terbin.stat.text`$, $p `r lrt.terbin.p.text`$), so subsequent tests will include random intercepts and slopes.
+
+The linear mixed effects model testing the effect of gender and frequency of health club visits on the rate of growth for subjects receiving terbinafine:
+$$
+E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+$$
+
+There are two hypotheses we are testing:
+
++ No effect of gender on the rate of growth, $H_0: \beta_{5} = 0$
++ No effect of frequency of health club visits on the rate of growth, $H_0: \beta_{6} = 0$
+
+```{r terbin-lmm-treatment}
+terbin.lmm.2random.coef <- coef(summary(terbin.lmm.2random))
+terbin.lmm.2random.table <- data.frame(round(terbin.lmm.2random.coef, 3))
+terbin.lmm.2random.table$p.text <- terbin.lmm.2random.table$p.value
+terbin.lmm.2random.table$p.text[terbin.lmm.2random.table$p.value < 0.001] <- "< 0.001"
+```
+
+Parameter estimates from linear mixed model:
+
+| Coefficient | Covariate         | Value | t      | $Pr(\beta = 0)$ |
+|:-----------:|:------------------|:-----:|:------:|:---------------:|
+| $\beta_1$   | Intercept         | `r terbin.lmm.2random.table$Value[1]` | `r terbin.lmm.2random.table$t.value[1]` | `r terbin.lmm.2random.table$p.text[1]` |
+| $\beta_2$   | Month             | `r terbin.lmm.2random.table$Value[2]` | `r terbin.lmm.2random.table$t.value[2]` | `r terbin.lmm.2random.table$p.text[2]` |
+| $\beta_3$   | Gender (male)     | `r terbin.lmm.2random.table$Value[3]` | `r terbin.lmm.2random.table$t.value[3]` | `r terbin.lmm.2random.table$p.text[3]` |
+| $\beta_4$   | Frequency (> once a week)        | `r terbin.lmm.2random.table$Value[4]` | `r terbin.lmm.2random.table$t.value[4]` | `r terbin.lmm.2random.table$p.text[4]` |
+| $\beta_5$   | Month * Gender    | `r terbin.lmm.2random.table$Value[5]` | `r terbin.lmm.2random.table$t.value[5]` | `r terbin.lmm.2random.table$p.text[5]` |
+| $\beta_6$   | Month * Frequency | `r terbin.lmm.2random.table$Value[6]` | `r terbin.lmm.2random.table$t.value[6]` | `r terbin.lmm.2random.table$p.text[6]` |
+
+**There is no support for either an effect of gender ($p = `r terbin.lmm.2random.table$p.text[5]`$) nor an effect of the frequency of health club visits ($p = `r terbin.lmm.2random.table$p.text[6]`$) on the rate of nail growth for subjects in the terbinafine treatment.**
 
 ***
 The R code used in this assignment can be found in a corresponding R Markdown document at [https://github.com/jcoliver/bios-684/blob/master/final-exam-oliver.Rmd](https://github.com/jcoliver/bios-684/blob/master/final-exam-oliver.Rmd).
