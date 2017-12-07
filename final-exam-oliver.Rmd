@@ -206,12 +206,10 @@ $$
 Note $T_{i2}$ is included only in an interaction effect ($T_{i2} \times X_i$). This is because R will create a coefficient for every level of a factor in an interaction term. See more details in the answer to 3(a).
 
 2. Variance
-
 $$
 Var(Y_{ij}|X_{ij}) = \mu_{ij}(1 - \mu_{ij}) \enspace \text{(Bernoulli variance, assuming no overdispersion, }\phi = 1 \text{)}
 $$
 3. Within-subject association has an "independent" structure for the working correlation, asserting no correlation between observations within a subject:
-
 $$
 Corr(Y_{ij}, Y_{ik}) = 
 \begin{cases}
@@ -251,13 +249,25 @@ The increasing number of missing observations over time suggests that subjects _
 ### 3a. Fit the model described in question 2 using PROC GENMOD. Provide the PROC GENMOD code used and the estimates of the parameters in the mean part of the model obtained as well as empirical standard errors for these estimates. 
 <!--[HINT: Add “/ param=ref “ after your list of variables in your class statement to ensure that SAS doesn’t try to outsmart you and add main effects of X back into the model].-->
 
-```{r marginal-model-arthritis, echo = TRUE}
+```{r marginal-model-arthritis-evaluated, include = FALSE}
 # corstr = "independence" >> effectively *no* within-subject correlation
 arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
                      corstr = "independence"))
+```
+
+```{r marginal-model-arthritis-echoed, echo = TRUE, eval = FALSE}
+# corstr = "independence" >> effectively *no* within-subject correlation
+arthritis.gee <- suppressMessages(gee(status ~ time + time:X,
+                     id = id,
+                     data = arthritis.long,
+                     family = binomial,
+                     corstr = "independence"))
+```
+
+```{r marginal-model-arthritis-results}
 arthritis.gee.summary <- summary(arthritis.gee)
 arthritis.gee.coef <- coef(arthritis.gee.summary)
 coef.table <- data.frame(arthritis.gee.coef)
@@ -282,7 +292,7 @@ For coefficients $\beta_5$ - $\beta_8$, the covariate is the interaction between
 
 #### b. How is this model different from an ordinary logistic regression analysis that assumes that all observations are independent? Note here the question is not “how do the results from the two analyses differ for these data”, but how the models themselves differ – that is, why would they give different results. 
 
-In general, ordinary and marginal models differ primarily in how they deal with within-subject correlations. In the ordinary logistic regression model, all observations, even those made on the same subject at different times, are assumed to be independent. In contrast, the marginal logistic model, within-subject correlations are accounted for in the "working" correlation matrix. Failing to account for within-subject non-independence may lead to misleading inferences, as the standard errors on parameter estimates will be smaller, potentially leading to false positives (rejecting $\beta = 0$ even when true). However, in this particular case, because we set `corstr = "independence"` in our marginal model, there is effectively _no_ within-subject correlation in the working correlation matrix (See also documentation on [SAS GENMOD](https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect043.htm)).
+In general, ordinary and marginal models differ primarily in how they deal with within-subject correlations. In the ordinary logistic regression model, all observations, even those made on the same subject at different times, are assumed to be independent. In contrast, the marginal logistic model, within-subject correlations are accounted for in the "working" correlation matrix. Failing to account for within-subject non-independence may lead to misleading inferences, as the standard errors on parameter estimates will be smaller, potentially leading to false positives (rejecting $\beta = 0$ even when $\beta$ really is zero). However, in this particular case, because we set `corstr = "independence"` in our marginal model, there is effectively _no_ within-subject correlation in the working correlation matrix (See also documentation on [SAS GENMOD](https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect043.htm)).
 
 #### Which approach do you prefer and why?
 
@@ -323,7 +333,7 @@ For the joint hypothesis, $W^2 = `r round(arthritis.joint.wald$result$chi2["chi2
 #### b. What do you conclude concerning the effect of auranofin versus placebo?
 <!--[Note: do not just provide a p-value from the test of the joint hypothesis; instead provide a broader interpretation of the results concerning any treatment differences].-->
 
-The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significant ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the change over time at the week 4 measurement was also significant (`r coef.table$p[6]`), while effects of Auranofin treatment on other weeks were not. The estimate for this interaction effect between Auranofin and time in week 4 is `r coef.table$Estimate[6]`. Inference based on this parameter requires comparing the week 4 response for an average subject in the placebo group:
+The proclivity for the average Auranofin subject's arthritis status to change over time is significantly different from the average subject in the placebo treatment. The joint Wald test of a post-baseline effect of Auranofin on arthritis status was significant ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). Additionally, in the test of individual time points, the effect of Auranofin treatment on the change over time at the week 4 measurement was also significant ($p = `r coef.table$p[6]`$), while effects of Auranofin treatment on other weeks were not. The estimate for this interaction effect between Auranofin and time in week 4 is `r coef.table$Estimate[6]`. Inference based on this parameter requires comparing the week 4 response for an average subject in the placebo group:
 
 $$
 logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2}
@@ -334,7 +344,7 @@ $$
 logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_6 T_{i2} \times X_i
 $$
 
-The odds ratio between average subjects in placebo and treatment groups is then e^$\beta_{6}$ = e^`r coef.table$Estimate[6]`^ = `r round(exp(coef.table$Estimate[6]), 3)`. That is, treatment with Auranofin causes a `r round(exp(coef.table$Estimate[6]), 3)`-fold increase in the odds of an average subject to have a "good" status in week 4 compared with the average subject receiving the placebo treatment.
+The odds ratio between average subjects in placebo and treatment groups is then $e^{\beta_{6}} = e^{`r coef.table$Estimate[6]`} = `r round(exp(coef.table$Estimate[6]), 3)`$. That is, treatment with Auranofin causes a `r round(exp(coef.table$Estimate[6]), 3)`-fold increase in the odds of an average subject to have a "good" status in week 4 compared with the average subject receiving the placebo treatment.
 
 #### c. The default test of the joint hypothesis within SAS (obtained by using the TYPE3 option without the WALD option) is not a Wald test. Review the SAS documentation and identify what type of test it is and why SAS uses it as the default rather than the Wald test.
 
@@ -424,6 +434,8 @@ arthritis.s.joint.wald <- wald.test(b = arthritis.s.gee.coef[, 1],
 ```
 
 For the joint hypothesis, $W^2 = `r round(arthritis.s.joint.wald$result$chi2["chi2"], 3)`$ and $p = `r round(arthritis.s.joint.wald$result$chi2["P"], 3)`$. We thus do not reject the null hypothesis of $\beta_{10} = \beta_{11} = \beta_{12} = 0$, and conclude the results are not likely affected by any imbalance in sex between the treatment groups.
+
+**Note:** I'm not convinced this was the best model for this test. A test of the three-way interaction among time, treatment, and sex seems like it would be more appropriate to address the investigator's concern, but attempts at modeling this interaction produced "`rank-deficient model matrix`" and "`error: logistic model for probability has fitted value very close to 1`" errors.
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
@@ -597,19 +609,22 @@ log(E(Y_{ij}|X_{ij}, b_i)) \sim N(`r skin.glmm.table$Estimate[1] + skin.glmm.tab
 $$
 
 This can be seen graphically:
-```{r new-counts-distribution, echo = TRUE, fig.height = 2.5}
+```{r new-counts-distribution, echo = TRUE, message = FALSE, fig.height = 2.5}
 # Generate values based on normal distribution with mean 0 and s.d. = s.d.(bi)
 intercepts <- rnorm(n = 1000, mean = 0, sd = sigma.b)
-# Now create vector based on beta estimates
-expected <- data.frame(log.counts = skin.glmm.table$Estimate[1] + skin.glmm.table$Estimate[2] + intercepts, new.counts = NA)
+# Now create data frame based on beta estimates
+expected <- data.frame(log.counts = skin.glmm.table$Estimate[1] + 
+                         skin.glmm.table$Estimate[2] + 
+                         intercepts, 
+                       new.counts = NA)
 # Use link function to get new counts
 expected$new.counts <- exp(expected$log.counts)
 # Plot the distribution of expected number of new cancers
-hist.plot <- ggplot(data = expected, mapping = aes(x = new.counts)) +
+hist.plot <- suppressMessages(ggplot(data = expected, mapping = aes(x = new.counts)) +
   geom_histogram() +
   ylab(label = "Frequency") +
   xlab(label = "New cancers") +
-  ggtitle("Expected distribution for year 1 at center 1")
+  ggtitle("Expected distribution for year 1 at center 1"))
 print(hist.plot)
 ```
 
