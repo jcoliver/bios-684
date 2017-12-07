@@ -427,7 +427,19 @@ For the joint hypothesis, $W^2 = `r round(arthritis.s.joint.wald$result$chi2["ch
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
-#TODO: Write abstract
+#TODO: Reduce abstract (currently 1200 characters; needs to be 500)
+
+#### Objective
+The objective of this work was to test the effects of auranofin on arthritis.
+
+#### Methods
+We used self-assessment of arthritis status in subjects receiving auranofin or placebo treatment as a measurement of effectiveness of treatment. Subjects were randomized before treatment, then asked whether or not they would categorize their arthritis status as "good". This was done one week prior to randomization, at randomization, and at 4, 8, and 12 weeks post-randomization. We used marginal mixed models to assess the effect of treatment and Wald tests to assess significance.
+
+#### Results
+We found an effect of the auranofin treatment on the proclivity of the average subject to report having a "good" arthritis status. In a joint Wald test, the average subject receiving auranofin was more likely to have "good" arthritis status than a subject receiving a placebo as measured in weeks 4, 8, and 12 ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). In a joint Wald test, there was no evidence for an effect of sex on the likelihood of a subject reporting "good" arthritis status ($W^2 = `r round(arthritis.s.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.s.joint.wald$result$chi2["P"], 3)`$).
+
+#### Conclusions
+The results presented here demonstrate that treatment with auranofin provides a significant improvement in arthritis status over placebo treatments.
 
 ## Question 2
 ### The investigator at Center=1 is interested in characterizing the distribution of risk among subjects at her center. _In the following, only include the subset of subjects with Center=1 in the analysis._
