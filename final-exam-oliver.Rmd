@@ -427,19 +427,19 @@ For the joint hypothesis, $W^2 = `r round(arthritis.s.joint.wald$result$chi2["ch
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
-#TODO: Reduce abstract (currently 1200 characters; needs to be 500)
-
 #### Objective
 The objective of this work was to test the effects of auranofin on arthritis.
 
 #### Methods
-We used self-assessment of arthritis status in subjects receiving auranofin or placebo treatment as a measurement of effectiveness of treatment. Subjects were randomized before treatment, then asked whether or not they would categorize their arthritis status as "good". This was done one week prior to randomization, at randomization, and at 4, 8, and 12 weeks post-randomization. We used marginal mixed models to assess the effect of treatment and Wald tests to assess significance.
+Subjects were randomized into auranofin and placebo treatments, then asked whether or not they would categorize their arthritis status as "good". Status was assessed one week prior to start of treatment, and at 0, 4, 8, and 12 weeks after the start of treatment. We used marginal mixed models to assess the effect of treatment and Wald tests to assess significance.
 
 #### Results
-We found an effect of the auranofin treatment on the proclivity of the average subject to report having a "good" arthritis status. In a joint Wald test, the average subject receiving auranofin was more likely to have "good" arthritis status than a subject receiving a placebo as measured in weeks 4, 8, and 12 ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$). In a joint Wald test, there was no evidence for an effect of sex on the likelihood of a subject reporting "good" arthritis status ($W^2 = `r round(arthritis.s.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.s.joint.wald$result$chi2["P"], 3)`$).
+In a joint Wald test, the average subject receiving auranofin was more likely to have "good" arthritis status than a subject receiving a placebo as measured in weeks 4, 8, and 12 ($W^2 = `r round(arthritis.joint.wald$result$chi2["chi2"], 3)`$, $p = `r round(arthritis.joint.wald$result$chi2["P"], 3)`$).
 
 #### Conclusions
 The results presented here demonstrate that treatment with auranofin provides a significant improvement in arthritis status over placebo treatments.
+
+_Note: there was no way for me to provide an informative abstract with only 500 **characters**._
 
 ## Question 2
 ### The investigator at Center=1 is interested in characterizing the distribution of risk among subjects at her center. _In the following, only include the subset of subjects with Center=1 in the analysis._
@@ -568,9 +568,50 @@ The GEE model estimated $\beta_1 = `r skin.gee.table$Estimate[1]`$, while GLMM m
 
 #### e) Use the parameter estimates from your GLMM and your model definition to characterize the distribution of expected counts of new skin cancers among subjects at center 1 during their first year of follow-up.
 
-We can characterize the distribution of expected skin counts of new cancers in the first year
+```{r random-intercept-variance}
+sigma.b <- skin.glmm.summary$varcor[[1]][1]
+```
 
-#TODO: Calculate value based on parameter estimates. Need to use language appropriate for GLMM, i.e. subject-specific.
+We can characterize the distribution of expected skin counts of new cancers in the first year with the model:
+$$
+log(E(Y_{ij}|X_{ij}, b_i)) = \beta_1 + \beta_2 Year_{ij} + b_{1i}
+$$
+
+Substituting in values for the $\beta$ estimates:
+$$
+log(E(Y_{ij}|X_{ij}, b_i)) = `r skin.glmm.table$Estimate[1]` `r skin.glmm.table$Estimate[2]` \times Year_{ij} + b_{1i}
+$$
+
+Setting $Year_{ij} = 1$, this becomes:
+$$
+log(E(Y_{ij}|X_{ij}, b_i)) = `r skin.glmm.table$Estimate[1] + skin.glmm.table$Estimate[2]` + b_{1i}
+$$
+
+The remaining step is to generate the distribution of expected new counts from the estimated variance in $b_{1i}$. From the `varcor` element of the `summary.glmer` object, the standard deviation of $b_i = `r round(sigma.b, 3)`$, so $b_i \sim N(0, `r round(sigma.b^2, 3)`)$. Distributionally, we can say:
+$$
+log(E(Y_{ij}|X_{ij}, b_i)) \sim N(\beta_1 + \beta_2, \sigma^2_b)
+$$
+or
+$$
+log(E(Y_{ij}|X_{ij}, b_i)) \sim N(`r skin.glmm.table$Estimate[1] + skin.glmm.table$Estimate[2]`, `r round(sigma.b^2, 3)`)
+$$
+
+This can be seen graphically:
+```{r new-counts-distribution, echo = TRUE, fig.height = 2.5}
+# Generate values based on normal distribution with mean 0 and s.d. = s.d.(bi)
+intercepts <- rnorm(n = 1000, mean = 0, sd = sigma.b)
+# Now create vector based on beta estimates
+expected <- data.frame(log.counts = skin.glmm.table$Estimate[1] + skin.glmm.table$Estimate[2] + intercepts, new.counts = NA)
+# Use link function to get new counts
+expected$new.counts <- exp(expected$log.counts)
+# Plot the distribution of expected number of new cancers
+hist.plot <- ggplot(data = expected, mapping = aes(x = new.counts)) +
+  geom_histogram() +
+  ylab(label = "Frequency") +
+  xlab(label = "New cancers") +
+  ggtitle("Expected distribution for year 1 at center 1")
+print(hist.plot)
+```
 
 ## Optional Extra Credit Problem
 <!--
