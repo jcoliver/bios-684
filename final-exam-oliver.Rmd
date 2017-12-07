@@ -168,7 +168,10 @@ Additional assumption: Data are missing completely at random (MCAR).
 
 1. Link function:
 $$
-logit(\mu_{ij}) = \beta_1 + \beta_2 T_{i2} + \beta_3 T_{i3} + \beta_4 T_{i4} + \beta_5 T_{i1} \times X_i + \beta_6 T_{i2} \times X_i + \beta_7 T_{i3} \times X_i + \beta_8 T_{i4} \times X_i
+\begin{aligned}
+  logit(\mu_{ij}) = &\beta_1 + \beta_2 T_{i2} + \beta_3 T_{i3} + \beta_4 T_{i4} + \\
+  &\beta_5 T_{i1} \times X_i + \beta_6 T_{i2} \times X_i + \beta_7 T_{i3} \times X_i + \beta_8 T_{i4} \times X_i
+\end{aligned}
 $$
 Where:
 $$
@@ -281,8 +284,6 @@ For coefficients $\beta_5$ - $\beta_8$, the covariate is the interaction between
 
 In general, ordinary and marginal models differ primarily in how they deal with within-subject correlations. In the ordinary logistic regression model, all observations, even those made on the same subject at different times, are assumed to be independent. In contrast, the marginal logistic model, within-subject correlations are accounted for in the "working" correlation matrix. Failing to account for within-subject non-independence may lead to misleading inferences, as the standard errors on parameter estimates will be smaller, potentially leading to false positives (rejecting $\beta = 0$ even when true). However, in this particular case, because we set `corstr = "independence"` in our marginal model, there is effectively _no_ within-subject correlation in the working correlation matrix (See also documentation on [SAS GENMOD](https://support.sas.com/documentation/cdl/en/statug/63033/HTML/default/viewer.htm#statug_genmod_sect043.htm)).
 
-#TODO: E-mail with question about working correlation structure (independence = no within-subject correlation?)
-
 #### Which approach do you prefer and why?
 
 In general, I would prefer the logistic marginal model over the ordinary logistic regression analysis because marginal models relax the assumption of independence among all samples, which is most likely violated in a longitudinal study such as this one. Marginal models also do not require the assumption of homogeneity of variance through time. The relaxation of these assumptions affords more confidence in inferences, as standard errors for parameter estimates are not artificially small as they would be for an ordinary logistic regression model on these longitudinal data.
@@ -386,17 +387,43 @@ However, I was unable to assess the impact of this association structure on the 
 
 ### 6. The investigator is interested in knowing whether the results comparing the effect of auranofin versus placebo on arthritis status over time is affected by any imbalance in sex between the treatment groups. Conduct analysis to address this specific issue. Briefly describe how you approached this (include your PROC GENMOD code) and what your key findings are.
 
-```{r marginal-compare-sexes, echo = TRUE}
-arthritis.s.gee <- suppressMessages(gee(status ~ sex + time + time:X,
+To test for an effect of sex, I expanded the model from 2(a) to include covariates for sex and sex * time interactions:
+$$
+\begin{aligned}
+  logit(\mu_{ij}) = &\beta_1 + \beta_2 Sex_{i} + \beta_3 T_{i2} + \beta_4 T_{i3} + \beta_5 T_{i4} + \\
+  &\beta_6 T_{i1} \times X_i + \beta_7 T_{i2} \times X_i + \beta_8 T_{i3} \times X_i + \beta_9 T_{i4} \times X_i + \\
+  &\beta_{10} T_{i2} \times Sex_i  + \beta_{11} T_{i3} \times Sex_i  + \beta_{12} T_{i4} \times Sex_i
+\end{aligned}
+$$
+
+```{r marginal-compare-sexes-evaluated, include = FALSE}
+# Run expanded model
+arthritis.s.gee <- suppressMessages(gee(status ~ sex + time + time:X + time:sex,
                      id = id,
                      data = arthritis.long,
                      family = binomial,
                      corstr = "independence"))
-arthritis.s.gee.coef <- data.frame(coef(summary(arthritis.s.gee)))
-arthritis.s.gee.coef$p <- 2*pnorm(q = abs(arthritis.s.gee.coef[, 5]), lower.tail = FALSE)
+arthritis.s.gee.coef <- coef(summary(arthritis.s.gee))
 ```
 
-#TODO: Describe the effect of sex (or lack thereof)
+```{r marginal-compare-sexes-echoed, echo = TRUE, eval = FALSE}
+# Run expanded model
+arthritis.s.gee <- suppressMessages(gee(status ~ sex + time + time:X + time:sex,
+                     id = id,
+                     data = arthritis.long,
+                     family = binomial,
+                     corstr = "independence"))
+```
+
+I then ran a multivariate Wald test on the hypothesis that there is no significant sex * time interaction, $H_0: \beta_{10} = \beta_{11} = \beta_{12} = 0$.
+```{r}
+# Run multivariate Wald test
+arthritis.s.joint.wald <- wald.test(b = arthritis.s.gee.coef[, 1],
+                                  varb = arthritis.s.gee$robust.variance,
+                                  Terms = c(10:12))
+```
+
+For the joint hypothesis, $W^2 = `r round(arthritis.s.joint.wald$result$chi2["chi2"], 3)`$ and $p = `r round(arthritis.s.joint.wald$result$chi2["P"], 3)`$. We thus do not reject the null hypothesis of $\beta_{10} = \beta_{11} = \beta_{12} = 0$, and conclude the results are not likely affected by any imbalance in sex between the treatment groups.
 
 ### 7. Summarize the objective, methods, results and conclusions of the study in an informative structured abstract suitable for a medical journal or conference (i.e. with sections under the headings: Objective, Methods, Results, Conclusions). Include key numerical results. The abstract should be no longer than 500 characters including spaces and cannot include tables or figures.
 
@@ -652,12 +679,18 @@ The question focuses only on those subjects in the terbinafine treatment, so the
 
 Random intercepts:
 $$
-E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i}
+\begin{aligned}
+E(Y_{ij}) = &\beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \\
+&\beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i}
+\end{aligned}
 $$
 
 Random intercepts and slopes:
 $$
-E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+\begin{aligned}
+E(Y_{ij}) = &\beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \\
+&\beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+\end{aligned}
 $$
 
 Where:
@@ -709,7 +742,10 @@ As previously, the random intercepts and slopes model provided a significantly b
 
 The linear mixed effects model testing the effect of gender and frequency of health club visits on the rate of growth for subjects receiving terbinafine:
 $$
-E(Y_{ij}) = \beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+\begin{aligned}
+E(Y_{ij}) = &\beta_{1} + \beta_{2} Month_{ij} + \beta_{3} Gender_{i} + \beta_{4} Freq_{i} + \\
+&\beta_5 Gender_{i} \times Month_{ij} + \beta_6 Freq_{i} \times Month_{ij} + b_{1i} + b_{2i} \times Month_{ij}
+\end{aligned}
 $$
 
 There are two hypotheses we are testing:
